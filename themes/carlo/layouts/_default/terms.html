@@ -1,0 +1,13 @@
+{{ define "main" }}
+<div class="page-header">
+  <p class="section-label">// tags</p>
+</div>
+<div class="tags-index">
+  {{ range .Data.Terms.Alphabetical }}
+  <a href="{{ .Page.Permalink }}" class="tag-index-item">
+    <span class="tag">{{ .Page.Title }}</span>
+    <span class="tag-count">{{ .Count }}</span>
+  </a>
+  {{ end }}
+</div>
+{{ end }}

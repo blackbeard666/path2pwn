@@ -1,0 +1,7 @@
+name = "carlo"
+license = "MIT"
+description = "Custom minimal dark theme for carlo's notes"
+min_version = "0.100.0"
+
+[author]
+  name = "carlo"
