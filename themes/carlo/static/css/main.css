@@ -19,6 +19,7 @@ html {
   color: var(--text);
   font-size: 14px;
   line-height: 1.7;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -32,6 +33,10 @@ a:hover { text-decoration: underline; }
 
 /* ---- HEADER ---- */
 .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
   border-bottom: var(--divider);
   padding: 1.25rem 0;
   margin-bottom: 3rem;
@@ -177,7 +182,7 @@ a.tag:hover {
   align-items: flex-start;
 }
 
-.post-content { flex: 1; min-width: 0; }
+.post-content { flex: 1; min-width: 0; overflow: hidden; }
 
 /* ---- POST HEADER ---- */
 .post-header { margin-bottom: 2rem; padding-bottom: 1.25rem; border-bottom: var(--divider); }
@@ -300,6 +305,14 @@ a.tag:hover {
 
 .post-body tr:last-child td {
   border-bottom: none;
+}
+
+/* ---- IMAGES ---- */
+.post-body img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem 0;
 }
 
 /* ---- CODE BLOCKS (Chroma) ---- */
