@@ -50,7 +50,7 @@ Seems like the server only checks for the presence of the godot engine header bu
 Now that we have an auth token, we can call the save endpoint to directly manipulate our score:
 ![image](/images/writeups/SJXs6GxNR.png)
 
-```bash=
+```bash
 $ curl -X POST "http://209.38.153.254:8888/save" -A "MyGame/1.0 (Godot Engine 3.2.3) Android/Pixel3" -H "Content-Type: application/json" -H "Authorization: 31592d1d-19ee-4b44-88d7-891d84980c07" -d '{"value":73317331}'
 {"message":"Value saved successfully."}
 ```
@@ -59,7 +59,7 @@ Then we check the `_on_Buy_Pressed` logic from the `shop.gd` file:
 ![image](/images/writeups/Syo8AzxVA.png)
 
 And now we try to get the flag via:
-```bash=
+```bash
 $ curl "http://209.38.153.254:8888/verify?value=73317331" -A "MyGame/1.0 (Godot Engine 3.2.3) Android/Pixel3" -H "Authorization: 31592d1d-19ee-4b44-88d7-891d84980c07"
 {"message":"flag{a31e44ba4df9789ed5491dc43fa22de3}"}
 ```
@@ -98,7 +98,7 @@ Specifically since we already have the offset for `decryptIntegrityCheck` at `0x
 ![image](/images/writeups/SkALHXeVR.png)
 
 Now this is what our frida script should look like:
-```javascript=
+```javascript
 function hookFunc() {
 
     var _kDartIsolateSnapshotInstructions = 0x001aacc0;

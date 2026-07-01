@@ -30,7 +30,7 @@ Interestingly enough, the SNMP port seems to be open. Simple Network Management 
 
 In order to enumerate the SNMP port, I used the following `snmpwalk` command (results truncated for readability of the important information only):
 
-```shell=
+```shell
 ┌──(ctfvm㉿ctfvm)-[~/Desktop/htb-machines/linux-easy-pandora]
 └─$ snmpwalk -v 1 -c public panda.htb                               
 iso.3.6.1.2.1.1.1.0 = STRING: "Linux pandora 5.4.0-91-generic #102-Ubuntu SMP Fri Nov 5 16:31:28 UTC 2021 x86_64"
@@ -74,7 +74,7 @@ Reviewing the provided Dockerfile, we were able to retrieve the github link of t
 We then continued to read some other files, such as `audit.log` which we learn that there may be 3 users 
 Since we already have ssh access + knowledge of the pandora site being hosted locally through Docker, the approach that I thought of was port forwarding in order to access the site from my attacker machine. 
 
-```shell=
+```shell
 ┌──(ctfvm㉿ctfvm)-[~/Desktop/htb-machines/linux-easy-pandora]
 └─$ ssh -L 80:localhost:80 daniel@pandora.htb
 ```
@@ -115,7 +115,7 @@ We're mostly interested in two of them:
 
 By simply entering the following command, we can escape the restricted environment and continue the privesc process:
 
-```shell=
+```shell
 echo "/bin/sh <$(tty) >$(tty) 2>$(tty)" | at now; tail -f /dev/null
 ```
 

