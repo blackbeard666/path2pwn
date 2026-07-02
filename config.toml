@@ -1,4 +1,4 @@
-baseURL = "https://notes.carlo.dev/"
+baseURL = "https://path2pwn.carlojaeavila.dev/"
 languageCode = "en-us"
 title = "/path/to/pwn"
 theme = "carlo"
