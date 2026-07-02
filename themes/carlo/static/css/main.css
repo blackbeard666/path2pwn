@@ -24,6 +24,9 @@ html {
 }
 
 body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
   max-width: 1020px;
   margin: 0 auto;
   padding: 0 1.5rem;
@@ -66,7 +69,7 @@ a:hover { text-decoration: underline; }
 .nav-right a:hover { color: var(--text-bright); text-decoration: none; }
 
 /* ---- MAIN ---- */
-.site-main { padding-bottom: 3rem; }
+.site-main { flex: 1; padding-bottom: 3rem; }
 
 /* ---- FOOTER ---- */
 .site-footer {
@@ -125,6 +128,30 @@ a:hover { text-decoration: underline; }
   text-decoration: none;
 }
 .post-list-row .post-title:hover { color: var(--accent); text-decoration: none; }
+
+.post-list-viewall {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+.post-list-viewall:hover { text-decoration: underline; }
+
+/* ---- PAGINATION ---- */
+.pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: var(--divider);
+  font-size: 0.75rem;
+}
+.pagination-link { color: var(--accent); text-decoration: none; }
+.pagination-link:hover { text-decoration: underline; }
+.pagination-disabled { color: var(--muted); opacity: 0.4; }
+.pagination-pages { color: var(--muted); }
 
 /* ---- TAGS ---- */
 .post-tags { display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center; }

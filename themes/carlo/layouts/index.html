@@ -1,9 +1,10 @@
 {{ define "main" }}
+{{ $cves := where .Site.RegularPages "Type" "cves" }}
 <div class="page-header">
   <p class="section-label">// cves</p>
 </div>
 <ul class="post-list">
-  {{ range (where .Site.RegularPages "Type" "cves") }}
+  {{ range first 8 $cves }}
   <li class="post-list-row">
     <time class="post-date">{{ .Date.Format "2006-01-02" }}</time>
     <a href="{{ .Permalink }}" class="post-title">{{ .Title }}</a>
@@ -16,12 +17,14 @@
   </li>
   {{ end }}
 </ul>
+{{ if gt (len $cves) 8 }}<a href="{{ "/cves/" | relURL }}" class="post-list-viewall">view all cves →</a>{{ end }}
 
+{{ $writeups := where .Site.RegularPages "Type" "writeups" }}
 <div class="page-header cve-header">
   <p class="section-label">// writeups</p>
 </div>
 <ul class="post-list">
-  {{ range (where .Site.RegularPages "Type" "writeups") }}
+  {{ range first 8 $writeups }}
   <li class="post-list-row">
     <time class="post-date">{{ .Date.Format "2006-01-02" }}</time>
     <a href="{{ .Permalink }}" class="post-title">{{ .Title }}</a>
@@ -34,4 +37,5 @@
   </li>
   {{ end }}
 </ul>
+{{ if gt (len $writeups) 8 }}<a href="{{ "/writeups/" | relURL }}" class="post-list-viewall">view all writeups →</a>{{ end }}
 {{ end }}

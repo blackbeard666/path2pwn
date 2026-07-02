@@ -2,7 +2,9 @@ baseURL = "https://notes.carlo.dev/"
 languageCode = "en-us"
 title = "carlo's notes"
 theme = "carlo"
-paginate = 20
+
+[pagination]
+  pagerSize = 10
 
 [markup]
   [markup.highlight]

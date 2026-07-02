@@ -3,7 +3,7 @@
   <p class="section-label">// tags</p>
 </div>
 <div class="tags-index">
-  {{ range .Data.Terms.Alphabetical }}
+  {{ range .Data.Terms.ByCount }}
   <a href="{{ .Page.Permalink }}" class="tag-index-item">
     <span class="tag">{{ .Page.Title }}</span>
     <span class="tag-count">{{ .Count }}</span>
