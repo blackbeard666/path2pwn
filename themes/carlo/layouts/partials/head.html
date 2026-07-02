@@ -1,6 +1,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>{{ if .IsHome }}{{ .Site.Title }}{{ else }}{{ .Title }} · {{ .Site.Title }}{{ end }}</title>
+<title>{{ if .IsHome }}{{ .Site.Title }}{{ else if .IsPage }}{{ .Title }} · {{ .Site.Title }}{{ else }}{{ .Title | lower }} · {{ .Site.Title }}{{ end }}</title>
 <meta name="description" content="{{ with .Description }}{{ . }}{{ else }}{{ .Site.Params.description }}{{ end }}" />
 <link rel="icon" type="image/png" href="{{ "favicon.png" | relURL }}" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
