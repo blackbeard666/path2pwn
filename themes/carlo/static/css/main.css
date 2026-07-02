@@ -108,8 +108,9 @@ a:hover { text-decoration: underline; }
 
 .post-list-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 1.25rem;
+  gap: 0.4rem 1.25rem;
   padding: 0.55rem 0;
   border-bottom: var(--divider);
 }
@@ -125,6 +126,7 @@ a:hover { text-decoration: underline; }
   color: var(--text);
   font-size: 0.85rem;
   flex: 1;
+  min-width: 12rem;
   text-decoration: none;
 }
 .post-list-row .post-title:hover { color: var(--accent); text-decoration: none; }
@@ -406,4 +408,8 @@ a.tag:hover {
 @media (max-width: 768px) {
   .post-layout { flex-direction: column-reverse; }
   .toc-sidebar { width: 100%; position: static; }
+
+  .post-body table { display: block; overflow-x: auto; white-space: nowrap; }
+  .post-list-row { flex-wrap: wrap; }
+  .post-date { width: auto; }
 }

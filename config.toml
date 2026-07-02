@@ -1,6 +1,6 @@
 baseURL = "https://notes.carlo.dev/"
 languageCode = "en-us"
-title = "carlo's notes"
+title = "/path/to/pwn"
 theme = "carlo"
 
 [pagination]
