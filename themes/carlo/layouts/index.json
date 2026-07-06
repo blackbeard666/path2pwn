@@ -8,7 +8,7 @@
       "date" (.Date.Format "2006-01-02")
       "category" (.Params.category | default "")
       "tags" (.Params.tags | default (slice))
-      "body" (.Plain | truncate 3000)
+      "body" (.Plain | truncate 1200)
   ) -}}
 {{- end -}}
 {{- $index | jsonify -}}

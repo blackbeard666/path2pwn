@@ -256,6 +256,30 @@ a:hover { text-decoration: underline; }
   margin-top: 0.15rem;
 }
 
+/* ---- SEARCH RESULTS PAGE (/search/) ---- */
+.search-page-box { margin-bottom: 0.75rem; }
+.search-page-input {
+  width: 100%;
+  font-family: var(--font);
+  font-size: 0.9rem;
+  color: var(--text-bright);
+  background: #13131a;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0.65rem 0.85rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.search-page-input::placeholder { color: var(--muted); }
+.search-page-input:focus { border-color: var(--accent); }
+.search-page-status {
+  font-size: 0.72rem;
+  color: var(--muted);
+  min-height: 1rem;
+  margin-bottom: 0.75rem;
+}
+.search-page-status:empty { margin-bottom: 0; }
+
 /* ---- POST LIST ---- */
 .post-list { list-style: none; }
 
