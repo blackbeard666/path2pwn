@@ -6,6 +6,12 @@ theme = "carlo"
 [pagination]
   pagerSize = 10
 
+# Emit /index.json (Fuse.js search index) alongside the home page. The search
+# page (layouts/_default/search.html) fetches it client-side — no build step,
+# no server, no third-party calls. See CLAUDE.md → Notes Site → Search.
+[outputs]
+  home = ["HTML", "RSS", "JSON"]
+
 [markup]
   [markup.highlight]
     style = "dracula"

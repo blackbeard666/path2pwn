@@ -1,41 +1,58 @@
 {{ define "main" }}
 {{ $cves := where .Site.RegularPages "Type" "cves" }}
-<div class="page-header">
-  <p class="section-label">// cves</p>
-</div>
-<ul class="post-list">
-  {{ range first 8 $cves }}
-  <li class="post-list-row">
-    <time class="post-date">{{ .Date.Format "2006-01-02" }}</time>
-    <a href="{{ .Permalink }}" class="post-title">{{ .Title }}</a>
-    {{ if or .Params.category .Params.tags }}
-    <div class="post-tags">
-      {{ with .Params.category }}<span class="tag tag-main">{{ . }}</span>{{ end }}
-      {{ range .Params.tags }}<a href="{{ "/tags/" | relURL }}{{ . | urlize }}/" class="tag">{{ . }}</a>{{ end }}
-    </div>
-    {{ end }}
-  </li>
-  {{ end }}
-</ul>
-{{ if gt (len $cves) 8 }}<a href="{{ "/cves/" | relURL }}" class="post-list-viewall">view all cves →</a>{{ end }}
-
 {{ $writeups := where .Site.RegularPages "Type" "writeups" }}
-<div class="page-header cve-header">
-  <p class="section-label">// writeups</p>
-</div>
-<ul class="post-list">
-  {{ range first 8 $writeups }}
-  <li class="post-list-row">
-    <time class="post-date">{{ .Date.Format "2006-01-02" }}</time>
-    <a href="{{ .Permalink }}" class="post-title">{{ .Title }}</a>
-    {{ if or .Params.category .Params.tags }}
-    <div class="post-tags">
-      {{ with .Params.category }}<span class="tag tag-main">{{ . }}</span>{{ end }}
-      {{ range .Params.tags }}<a href="{{ "/tags/" | relURL }}{{ . | urlize }}/" class="tag">{{ . }}</a>{{ end }}
+
+<section class="home-intro">
+  <p class="section-label">// about</p>
+  <h1 class="home-title">/path/to/pwn<span class="cursor">_</span></h1>
+  <p class="home-bio">
+    Security research notes by <a href="https://carlojaeavila.dev" target="_blank" rel="noopener">Carlo Jae Avila</a> — CVE deep-dives and exploit write-ups from breaking mobile apps and their internals. Everything here is hands-on: real source at the vulnerable commit, full proof-of-concepts, actual output.
+  </p>
+  <div class="home-stats">
+    <span><strong>{{ len $cves }}</strong> CVEs disclosed</span>
+    <span><strong>{{ len $writeups }}</strong> writeups</span>
+    <span><strong>{{ len .Site.Taxonomies.tags }}</strong> tags</span>
+  </div>
+</section>
+
+{{ with index (first 1 .Site.RegularPages) 0 }}
+<section class="home-latest">
+  <p class="section-label">// latest</p>
+  <a href="{{ .Permalink }}" class="latest-card">
+    <div class="latest-card-body">
+      <time class="post-date">{{ .Date.Format "2006-01-02" }}</time>
+      <span class="latest-card-title">{{ .Title }}</span>
+      {{ if or .Params.category .Params.tags }}
+      <div class="post-tags">
+        {{ with .Params.category }}<span class="tag tag-main">{{ . }}</span>{{ end }}
+        {{ range .Params.tags }}<span class="tag">{{ . }}</span>{{ end }}
+      </div>
+      {{ end }}
     </div>
-    {{ end }}
-  </li>
-  {{ end }}
-</ul>
-{{ if gt (len $writeups) 8 }}<a href="{{ "/writeups/" | relURL }}" class="post-list-viewall">view all writeups →</a>{{ end }}
+    <span class="latest-card-arrow">read →</span>
+  </a>
+</section>
+{{ end }}
+
+<section class="home-explore">
+  <p class="section-label">// explore</p>
+  <div class="explore-grid">
+    <a href="{{ "/cves/" | relURL }}" class="explore-card">
+      <div class="explore-card-head">
+        <span class="explore-card-title">cves</span>
+        <span class="explore-card-arrow">→</span>
+      </div>
+      <div class="explore-card-count">{{ len $cves }} disclosed</div>
+      <p class="explore-card-desc">Technical CVE deep-dives — root cause at the vulnerable commit, working PoC, patch analysis.</p>
+    </a>
+    <a href="{{ "/writeups/" | relURL }}" class="explore-card">
+      <div class="explore-card-head">
+        <span class="explore-card-title">writeups</span>
+        <span class="explore-card-arrow">→</span>
+      </div>
+      <div class="explore-card-count">{{ len $writeups }} published</div>
+      <p class="explore-card-desc">CTF solves, tooling notes, and offensive research on mobile, web, and platform internals.</p>
+    </a>
+  </div>
+</section>
 {{ end }}

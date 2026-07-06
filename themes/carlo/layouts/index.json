@@ -1,0 +1,14 @@
+{{- $index := slice -}}
+{{- $pages := where .Site.RegularPages "Type" "in" (slice "cves" "writeups") -}}
+{{- range $pages -}}
+  {{- $index = $index | append (dict
+      "title" .Title
+      "url" .RelPermalink
+      "type" .Type
+      "date" (.Date.Format "2006-01-02")
+      "category" (.Params.category | default "")
+      "tags" (.Params.tags | default (slice))
+      "body" (.Plain | truncate 3000)
+  ) -}}
+{{- end -}}
+{{- $index | jsonify -}}

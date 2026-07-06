@@ -6,6 +6,22 @@
       <a href="{{ "/cves/" | relURL }}">cves</a>
       <a href="{{ "/tags/" | relURL }}">tags</a>
       <a href="https://carlojaeavila.dev">carlojaeavila.dev ↗</a>
+      <div class="nav-search">
+        <input
+          type="search"
+          id="search-input"
+          class="nav-search-input"
+          placeholder="search…"
+          autocomplete="off"
+          autocapitalize="off"
+          spellcheck="false"
+          aria-label="Search cves, writeups, and tags"
+        />
+        <div class="search-dropdown" id="search-dropdown">
+          <p class="search-status" id="search-status"></p>
+          <div class="search-results" id="search-results"></div>
+        </div>
+      </div>
     </div>
   </nav>
 </header>
