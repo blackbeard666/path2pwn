@@ -1,13 +1,20 @@
 {{ define "main" }}
-<div class="page-header">
-  <p class="section-label">// tags</p>
+{{- /* .ByCount is already descending — do NOT chain .Reverse onto it, that
+       flips it to ascending and buries the most-used tags. */ -}}
+<div class="index-head">
+  <span class="kicker">// {{ len .Data.Terms }} tags</span>
+  <h1>TAGS</h1>
+  <p class="index-intro">Every tag across the CVE deep-dives and write-ups, most-used first.</p>
 </div>
-<div class="tags-index">
+
+<ul class="tag-cloud">
   {{ range .Data.Terms.ByCount }}
-  <a href="{{ .Page.Permalink }}" class="tag-index-item">
-    <span class="tag">{{ .Page.Title }}</span>
-    <span class="tag-count">{{ .Count }}</span>
-  </a>
+  <li>
+    <a href="{{ .Page.Permalink }}">
+      <span class="tag-cloud-name">#{{ .Page.Title | lower }}</span>
+      <span class="side-count">{{ .Count }}</span>
+    </a>
+  </li>
   {{ end }}
-</div>
+</ul>
 {{ end }}

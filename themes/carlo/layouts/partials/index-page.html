@@ -1,0 +1,48 @@
+{{- /* A paginated archive with a filter bar. Shared by /cves/, /writeups/ and
+       /all/ so those three can never drift apart.
+
+       Params: ctx, pages (the FULL set — drives counts, chips, sidebar),
+               paginator (the current page's slice), scope, title, intro.
+
+       Two containers on purpose:
+         [data-index]           server-rendered rows for THIS page + the paginator
+         [data-filter-results]  empty; filter.js renders cross-page matches here
+       When a filter is active, filter.js hides the first and fills the second.
+       That is what lets filtering reach posts on page 2 while you're on page 1 —
+       hiding server rows alone could only ever search the current page. */ -}}
+{{ $ctx := .ctx }}
+{{ $pages := .pages }}
+{{ $paginator := .paginator }}
+{{ $cves := where $pages "Params.cve" "!=" nil }}
+{{ $writeups := where $pages "Params.cve" nil }}
+
+<div class="index-head">
+  <span class="kicker">
+    // {{ len $pages }} posts
+    {{ if $cves }}· {{ len $cves }} cve deep-dive{{ if ne (len $cves) 1 }}s{{ end }}{{ end }}
+    {{ if $writeups }}· {{ len $writeups }} writeup{{ if ne (len $writeups) 1 }}s{{ end }}{{ end }}
+  </span>
+  <h1>{{ .title }}</h1>
+  {{ with .intro }}<p class="index-intro">{{ . }}</p>{{ end }}
+</div>
+
+{{ partial "filter-bar.html" (dict "pages" $pages "scope" .scope) }}
+
+<div class="index-layout">
+  <div class="index-rows">
+    <div data-index>
+      {{ range $paginator.Pages }}
+        {{ partial "post-row.html" . }}
+      {{ end }}
+      {{ partial "pagination.html" $paginator }}
+    </div>
+
+    <div data-filter-results hidden></div>
+
+    <p class="index-empty" data-empty hidden>
+      Nothing matches that. <button type="button" data-filter-clear>clear the filter</button>
+    </p>
+  </div>
+
+  {{ partial "index-sidebar.html" (dict "ctx" $ctx "pages" $pages) }}
+</div>

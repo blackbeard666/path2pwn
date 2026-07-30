@@ -3,23 +3,21 @@ title: "K3RN3LCTF 2021 — easy_kernel"
 date: 2021-11-12
 category: "pwn"
 tags: ["ctf", "kernel", "rop", "kaslr", "kpti", "privesc"]
-description: "Linux kernel exploitation for K3RN3LCTF 2021: stack buffer overflow in a kernel module, KASLR leak via sread(), ROP chain, and KPTI trampoline bypass."
+summary: "Linux kernel exploitation for K3RN3LCTF 2021: stack buffer overflow in a kernel module, KASLR leak via sread(), ROP chain, and KPTI trampoline bypass."
+source: "ctf"
 draft: false
----
----
-title: k3rnel4rmy CTF, easy-kernel
 ---
 
 ## K3RN3LCTF 2021: easy_kernel
 
 This writeup will cover my first foray into linux kernel exploitation. Disclaimer, I just started learning kernel pwn this month, so some information here might be incomplete. I plan to improve it after I learn a little more about the kernel. 
 
-#### Challenge Description
+### Challenge Description
 ![](https://i.imgur.com/om3Jph8.png)
 
 Since the CTF was held and aimed for beginner-intermediate players, it is a safe assumption that this is an easy and introductory kernel pwn challenge. We are given the remote server details + challenge files in `easy_kernel.tar.gz`
 
-#### Challenge + Environment Files
+### Challenge + Environment Files
 ```shell
 testpwn@testpwn-VirtualBox:~/Desktop/kernelarmy/pwn-kernel-extract$ ls -la
 total 22236
@@ -53,7 +51,7 @@ testpwn@testpwn-VirtualBox:~/Desktop/kernelarmy/pwn-kernel-extract$ ROPgadget --
 ```
 The other `.sh` files are some bash scripts which automate some stuff such as taking a look how the  pow is calculated, starting the QEMU emulator and rebuilding/compressing the file system. 
 
-#### rebuild_fs.sh
+### rebuild_fs.sh
 ```bash
 #!/bin/bash
 
@@ -63,7 +61,7 @@ popd
 
 ```
 
-#### QEMU config
+### QEMU config
 
 ```bash
 #!/bin/bash
@@ -87,7 +85,7 @@ Notable flags:
 - `-initrd`: specifies the compressed file system
 - `-append`: specifies additional boot options; kernel command line (?). From this flag we can see that `kaslr` is enabled.
 
-#### Kernel Mitigations
+### Kernel Mitigations
 
 A brief description of the kernel mitigations that are present for this challenge (I need to elaborate on this further, still trying to fully understand how they are used):
 - `SMEP`: this feature marks all the userland pages in the page table as non-executable when the process is in kernel-mode. Basically kills ret2usr shellcode.
@@ -97,7 +95,7 @@ A brief description of the kernel mitigations that are present for this challeng
 
 ![](https://i.imgur.com/BXHAqHg.png)
 
-#### Modifying the Environment
+### Modifying the Environment
 
 Kernel debugging is painful (at least for me who is just getting started with it), so modifying the kernel environment will allow us to have an easier time while developing an exploit. Here are some of the things that I revised in the qemu launch script:
 
@@ -122,7 +120,7 @@ chmod 700 /flag.txt
 /bin/sh
 ```
 
-#### Reversing the kernel module
+### Reversing the kernel module
 
 Kernel modules are very synonymous to userspace libraries like `libc.so.6`. Modules/Drivers are loaded into kernel space and run with the same privileges as ring-zero. Userspace code can interact with the kernel by first acquiring a handle to a kernel module, then reading/writing data into it through various channels (read/write/ioctl/etc.)
 
@@ -263,7 +261,7 @@ ulong swrite(undefined8 param_1,ulong userspace_buffer,ulong bytes_to_copy)
 
 Now here is the juicy part, it copies data from userspace and stores it into kernel_buffer which is on the kernel stack. Since we can again control `bytes_to_copy` and more importantly `MaxBuffer`, we can induce a buffer overflow. We don't have to worry about the cookie, since we can leak it from `sread`. After that, we have instruction pointer control on the kernel. 
 
-#### Crafting the payload
+### Crafting the payload
 
 First off, I reused some template code which helps preserve the state of some registers. This will be useful later for when we want to return from kernel-space back to userland. 
 
@@ -316,7 +314,7 @@ we successfully read 256 bytes from the device, all which include important kern
 
 
 
-#### Triggering kernel panic
+### Triggering kernel panic
 
 Currently, here is what our current exploit looks like:
 ```c
@@ -352,7 +350,7 @@ What it simply does is to retrieve values from the leak and calculate the base a
 
 ![](https://i.imgur.com/CR7qWjo.png)
 
-#### Preserving the Stack Cookie + taking control
+### Preserving the Stack Cookie + taking control
 
 When disassembling the `swrite` function, we can see that it loads the cookie into the stack at [rsp + 0x80]:
 ![](https://i.imgur.com/HdkAZPH.png)
@@ -395,7 +393,7 @@ Running the exploit causes a `general protection fault in user access. non-canon
 
 Now that we can control the kernel instruction pointer, our next phase should be escalating privileges. 
 
-#### Privilege Escalation
+### Privilege Escalation
 
 Unlike userland exploits in which our target is to spawn a shell, the goal for kernel exploits is different: to escalate the privileges of the running process (the exploit) from some basic user to root, then spawn a root shell. To do this, we take advantage of the `task_struct` structure:
 
@@ -457,7 +455,7 @@ Since these functions are part of the kernel, we can include them into the list 
 
 The next step of our payload will be to construct a rop chain that basically calls `commit_creds(prepare_kernel_cred(0))`
 
-#### Kernel ROP
+### Kernel ROP
 
 For this part, I mostly relied on writeups to know which gadgets to use. Initially my exploit code looked like this:
 
@@ -525,7 +523,7 @@ The problem with this approach is that I wasn't able to return to userland prope
 
 The reason is because of KPTI. Even though we have already returned the execution to user-mode, the page tables that it is using is still the kernel’s, with all the pages in userland marked as non-executable.
 
-#### Bypassing KPTI
+### Bypassing KPTI
 
 To bypass KPTI, I used a method called KPTI trampoline. This method is based on the idea that if a syscall returns normally, there must be a piece of code in the kernel that will swap the page tables back to the userland ones, so we will try to reuse that code to our purpose. That piece of code is our KPTI trampoline, and what it does is to swap page tables, swapgs and iretq.
 
@@ -533,7 +531,7 @@ Our kpti_trampoline resides in the function `swapgs_restore_regs_and_return_to_u
 
 ![](https://i.imgur.com/ChnilVi.png)
 
-#### Final Payload
+### Final Payload
 ```c
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -630,13 +628,13 @@ void main() {
 
 ![](https://i.imgur.com/0o7mu1C.png)
 
-#### My Takeaways
+### My Takeaways
 
 - Linux Kernel pwn is really fun, I look forward to studying it more
 - I need to work on my C. my exploit code looks like shit. 
 - Need to rewrite this writeup sometime, got a lot of stuff to further understand
 
-#### References
+### References
 
 - https://lkmidas.github.io/posts/20210123-linux-kernel-pwn-part-1/ <- most of my writeup is based (and some copied verbatim) around this godsent kernel writeup series
 - https://j00ru.vexillium.org/2011/06/smep-what-is-it-and-how-to-beat-it-on-windows/

@@ -3,10 +3,10 @@ title: "InsecureShop — Android App Exploitation, pt. 1"
 date: 2022-04-06
 category: "mobile"
 tags: ["android", "ctf", "webview", "hardcoded-credentials", "ssl"]
-description: "Part 1: InsecureShop walkthrough covering insecure logging, hardcoded credentials, insecure data storage, SSL bypass, and URL validation issues."
+summary: "Part 1: InsecureShop walkthrough covering insecure logging, hardcoded credentials, insecure data storage, SSL bypass, and URL validation issues."
+source: "research"
 draft: false
 ---
-# Insecure Shop: an intro to android app exploitation, pt.1
 ![](https://i.imgur.com/4Kp22BV.png)
 
 It's been quite a while since I've last tried to reverse engineer and hunt for vulnerabilities in android applications (last was when I took emapt?), I badly need to brush up on android stuff since I've got a new project in mind. 
@@ -32,17 +32,17 @@ Since this writeup is targetted towards beginners, we will be analyzing the appl
 ## Reverse Engineering Toolset
 This section covers some of the tools that I have used in order to reverse engineer and exploit the target application. I'll also include some required skills that you need (at least) a basic grasp on. The listed tools work on both Windows and Linux systems. 
 
-#### Emulators
+### Emulators
 
 - [Android Studio](https://developer.android.com/studio/install): simply follow the instructions for installation. By default, `sdk` and `build` tools should be installed too. Add the paths for the sdk and build tools to your environment variables. 
 - [Genymotion Emulator](https://www.genymotion.com/download/): prepares a rooted android phone, not really needed if you can get Android Studio's AVD (android virtual device) to run.
 - Physical phone: not an emulator but i'll just place it here. You must have developer settings enabled on this phone + connect usb cord to your machine.
-#### Static Analysis
+### Static Analysis
 - [jadx-gui](https://github.com/skylot/jadx/releases): used to decompile an apk and view the java source code (also automatically gets the java source of apps made in kotlin). Download `jadx-current.version.zip` then extract into your machine
 - [apktool](https://ibotpeaches.github.io/Apktool/install/): decompiles the apk to retrieve the raw resources and smali bytecode of the application. Follow the installation steps
 - [MobSF](https://mobsf.github.io/docs/#/): automates the static RE process. Not really required for this writeup, but definitely a plus to have in other engagements.
 
-#### Dynamic Analysis
+### Dynamic Analysis
 - [android debug bridge (ADB)](https://developer.android.com/studio/command-line/adb): for interaction with the device (e.g: installing an application, sending queries).
 - Example `adb` commands:
 ```shell
@@ -64,7 +64,7 @@ C:\Users\Pc> adb shell
 cache  code_cache  databases  shared_prefs
 ```
 
-#### Required skillset + knowledge + reading resources:
+### Required skillset + knowledge + reading resources:
 - Android app development: needed for crafting the exploit application. 
 - Android Security Architecture + APK Structure: https://medium.com/mobis3c/introduction-to-android-security-64609edeb18c
 - Android app components: https://developer.android.com/guide/components/fundamentals

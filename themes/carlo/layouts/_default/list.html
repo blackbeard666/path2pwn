@@ -1,21 +1,14 @@
 {{ define "main" }}
-<div class="page-header">
-  <p class="section-label">// {{ .Title | lower }}</p>
-</div>
+{{- /* /cves/ and /writeups/ — paginated archives, each with a filter bar scoped
+       to its own section so a filter here can never surface the other type.
+       /all/ is the page that spans both. */ -}}
 {{ $paginator := .Paginate .Pages }}
-<ul class="post-list">
-  {{ range $paginator.Pages }}
-  <li class="post-list-row">
-    <time class="post-date">{{ .Date.Format "2006-01-02" }}</time>
-    <a href="{{ .Permalink }}" class="post-title">{{ .Title }}</a>
-    {{ if or .Params.category .Params.tags }}
-    <div class="post-tags">
-      {{ with .Params.category }}<span class="tag tag-main">{{ . }}</span>{{ end }}
-      {{ range .Params.tags }}<a href="{{ "/tags/" | relURL }}{{ . | urlize }}/" class="tag">{{ . }}</a>{{ end }}
-    </div>
-    {{ end }}
-  </li>
-  {{ end }}
-</ul>
-{{ partial "pagination.html" $paginator }}
+{{ partial "index-page.html" (dict
+    "ctx" .
+    "pages" .Pages
+    "paginator" $paginator
+    "scope" .Type
+    "title" (upper .Title)
+    "intro" (or .Params.intro .Params.description)
+) }}
 {{ end }}

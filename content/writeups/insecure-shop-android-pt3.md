@@ -3,10 +3,10 @@ title: "InsecureShop — Android App Exploitation, pt. 3"
 date: 2022-04-06
 category: "mobile"
 tags: ["android", "ctf", "rce", "content-provider", "file-provider"]
-description: "Part 3: arbitrary code execution via third-party package context loading; vulnerabilities 16-18 listed as stubs."
+summary: "Part 3: arbitrary code execution via third-party package context loading; vulnerabilities 16-18 listed as stubs."
+source: "research"
 draft: false
 ---
-# Insecure Shop: an intro to android app exploitation, pt.3
 
 This will part will conclude the writeup series on insecure shop. Hopefully, I was able to impart some knowledge on how to exploit vulnerable components in android applications. 
 

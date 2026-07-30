@@ -1,0 +1,40 @@
+{{- /* Index sidebar: tag counts, year counts, and a card back to the landing
+       site. Counts come from the taxonomy and from the pages themselves, so
+       they can never drift out of date. */ -}}
+{{ $pages := .pages }}
+
+<aside class="index-side">
+  <section class="side-block">
+    <h2 class="side-head">Tags</h2>
+    <ul class="side-list">
+      {{ range first 18 .ctx.Site.Taxonomies.tags.ByCount }}
+      <li>
+        <a href="{{ .Page.Permalink }}">{{ .Page.Title | lower }}</a>
+        <span class="side-count">{{ .Count }}</span>
+      </li>
+      {{ end }}
+    </ul>
+    <a class="side-more" href="{{ "/tags/" | relURL }}">all tags ↗</a>
+  </section>
+
+  <section class="side-block">
+    <h2 class="side-head">Years</h2>
+    <ul class="side-list">
+      {{ range $pages.GroupByDate "2006" }}
+      <li>
+        <span class="side-year">{{ .Key }}</span>
+        <span class="side-count">{{ len .Pages }}</span>
+      </li>
+      {{ end }}
+    </ul>
+  </section>
+
+  <section class="side-card">
+    <h2 class="side-head">Who's writing this</h2>
+    <p>
+      Carlo Jae Avila — Lead Offensive Security Engineer at Secuna. Six disclosed
+      CVEs in Android applications, each one written up here.
+    </p>
+    <a href="https://carlojaeavila.dev" target="_blank" rel="noopener">carlojaeavila.dev ↗</a>
+  </section>
+</aside>

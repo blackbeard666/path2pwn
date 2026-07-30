@@ -1,3 +1,14 @@
+{{- /* Fuse.js index, emitted at /index.json by [outputs] home in config.toml.
+       Drives the filter bar (static/js/filter.js).
+
+       Because the archives are paginated, filter.js RENDERS ROWS FROM THIS FILE
+       when a query is active — it can't just hide DOM rows, or it would only
+       ever search the page you happen to be on. So this must carry every field
+       partials/post-row.html renders, `readingTime` included, or a
+       JS-rendered row won't match a Hugo-rendered one.
+
+       `body` is truncated hard on purpose — it is only weight 0.01, and the
+       whole file has to stay small enough to fetch during browser idle. */ -}}
 {{- $index := slice -}}
 {{- $pages := where .Site.RegularPages "Type" "in" (slice "cves" "writeups") -}}
 {{- range $pages -}}
@@ -6,8 +17,16 @@
       "url" .RelPermalink
       "type" .Type
       "date" (.Date.Format "2006-01-02")
+      "readingTime" .ReadingTime
+      "cve" (.Params.cve | default "")
+      "severity" (.Params.severity | default "")
+      "status" (.Params.status | default "")
+      "source" (.Params.source | default "")
+      "vendor" (.Params.vendor | default "")
+      "affected" (.Params.affected | default "")
       "category" (.Params.category | default "")
       "tags" (.Params.tags | default (slice))
+      "summary" (.Params.summary | default "")
       "body" (.Plain | truncate 1200)
   ) -}}
 {{- end -}}

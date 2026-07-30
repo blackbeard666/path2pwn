@@ -3,10 +3,10 @@ title: "InsecureShop — Android App Exploitation, pt. 2"
 date: 2022-04-06
 category: "mobile"
 tags: ["android", "ctf", "webview", "intent", "content-provider", "broadcast-receiver"]
-description: "Part 2: insecure broadcast receivers, implicit intent hijacking, intent redirection to protected components, and WebView file exfiltration."
+summary: "Part 2: insecure broadcast receivers, implicit intent hijacking, intent redirection to protected components, and WebView file exfiltration."
+source: "research"
 draft: false
 ---
-# Insecure Shop: an intro to android app exploitation, pt.2
 
 ![](https://i.imgur.com/z8Ec1FS.jpg)
 
@@ -73,7 +73,7 @@ Reviewing the other methods defined in the AboutUs activity reveals another vuln
 
 The important thing to note here is that the `onSendData` method uses an implicit intent in order to broadcast sensitive credentials. This is a weakness because mplicit broadcasts are delivered to each receiver registered on the device, across all apps. 
 
-#### Explicit vs. Implicit Intents
+### Explicit vs. Implicit Intents
 Let's take a moment here to briefly discuss two types of intents:
 
 1. **Explicit Intents**
@@ -88,7 +88,7 @@ In the case of the `onSendData` method's broadcast, the use of implicit intents 
 
 Before we begin to develop the malicious apk, readers might be curious on how we could trigger the call to `onSendData`. When looking at the layout for the activity ([activity_about_us.xml](https://github.com/hax0rgb/InsecureShop/blob/main/app/src/main/res/layout/activity_about_us.xml)), we see that the onClick action for the Button is assigned to the vulnerable method. Thus, we simply need to click the button in the About Us activity to trigger the broadcast.
 
-#### exploit.apk
+### exploit.apk
 
 To exploit the vuln, we'll need to create our own malicious app and register a broadcast receiver that listens `com.insecureshop.action.BROADCAST`
 

@@ -1,0 +1,40 @@
+{{- /* One archive row.
+
+       static/js/filter.js renders an identical row from /index.json when a
+       filter is active (it has to, because the archives are paginated). If you
+       change the markup here, change rowHtml() in that file to match. */ -}}
+<article class="row" data-row
+         data-url="{{ .RelPermalink }}"
+         data-title="{{ .Title }}"
+         data-cve="{{ .Params.cve }}"
+         data-cat="{{ .Params.category }}"
+         data-type="{{ .Type }}"
+         data-tags="{{ delimit .Params.tags " " }}">
+  <div class="row-meta">
+    <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
+    {{ with .Params.cve }}<span class="badge-cve">CVE</span>{{ end }}
+    {{/* Severity was on the landing page and on the post head but on no archive row
+         between them, so the list gave no way to tell a HIGH from a LOW without
+         opening it. Word, never colour alone — same rule as everywhere else. */}}
+    {{ with .Params.severity }}<span class="badge-sev is-{{ lower . }}">{{ . }}</span>{{ end }}
+    {{ with .Params.category }}<span class="badge-cat">{{ . }}</span>{{ end }}
+    <span>{{ .ReadingTime }} min</span>
+    {{ if .Params.cve }}
+      {{ with .Params.status }}<span class="row-status">{{ . }}</span>{{ end }}
+    {{ else }}
+      {{ with .Params.source }}<span class="row-source">{{ . }}</span>{{ end }}
+    {{ end }}
+  </div>
+
+  {{/* h2, not h3: these are the top-level items of the list, directly under the
+       page h1. h3 skipped a level. */}}
+  <h2 class="row-title"><a href="{{ .RelPermalink }}">{{ .Title }}</a></h2>
+
+  {{ with .Params.summary }}<p class="row-summary">{{ . }}</p>{{ end }}
+
+  {{ with .Params.tags }}
+  <div class="row-tags">
+    {{ range . }}<a data-tag-link="{{ . }}" href="{{ "/tags/" | relURL }}{{ . | urlize }}/">#{{ . }}</a>{{ end }}
+  </div>
+  {{ end }}
+</article>

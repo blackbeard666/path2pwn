@@ -1,5 +1,5 @@
 baseURL = "https://path2pwn.carlojaeavila.dev/"
-languageCode = "en-us"
+locale = "en-us"
 title = "/path/to/pwn"
 theme = "carlo"
 
@@ -7,17 +7,27 @@ theme = "carlo"
   pagerSize = 10
 
 # Emit /index.json (Fuse.js search index) alongside the home page. The search
-# page (layouts/_default/search.html) fetches it client-side — no build step,
+# page (layouts/_default/all.html) fetches it client-side — no build step,
 # no server, no third-party calls. See CLAUDE.md → Notes Site → Search.
 [outputs]
   home = ["HTML", "RSS", "JSON"]
 
+# Posts use `category` as a plain string param, not Hugo's `categories`
+# taxonomy. Left at the default, Hugo still generated an empty /categories/
+# listing page — a real URL with nothing on it. Only `tags` is a taxonomy here.
+[taxonomies]
+  tag = "tags"
+
 [markup]
   [markup.highlight]
-    style = "dracula"
+    # noClasses = false makes Chroma emit semantic classes (.k, .s, .c, …)
+    # instead of inlining a theme's hex values, so the colours come from
+    # tokens.css like everything else. The class map lives in main.css under
+    # "CODE / CHROMA". `style` is intentionally not set — it would only matter
+    # if we were letting Chroma pick the colours.
     lineNos = false
     codeFences = true
-    noClasses = true
+    noClasses = false
   [markup.tableOfContents]
     startLevel = 2
     endLevel = 4

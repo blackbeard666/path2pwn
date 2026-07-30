@@ -3,18 +3,18 @@ title: "MobileHackingLab — Document Viewer RCE"
 date: 2025-01-01
 category: "mobile"
 tags: ["android", "path-traversal", "rce", "native", "ctf"]
-description: "Chaining path traversal in getLastPathSegment() with unverified native library loading for RCE on MobileHackingLab's Document Viewer."
+summary: "Chaining path traversal in getLastPathSegment() with unverified native library loading for RCE on MobileHackingLab's Document Viewer."
+source: "research"
 draft: false
 ---
 ## Mobile Hacking Lab - Document Viewer
 
 <div style="text-align:center">
-    <img src="/images/writeups/ByD9GxfUT.png"/>
+    <img src="/images/writeups/ByD9GxfUT.png" alt="Mobile Hacking Lab Document Viewer challenge banner" />
 </div>
 
-:::warning
-:rotating_light: This is a writeup for an active challenge from Mobile Hacking Labs. Try to solve the lab on your own first hosted here: https://www.mobilehackinglab.com/course/lab-document-viewer-rce before peeking.
-:::
+> :rotating_light: This is a writeup for an active challenge from Mobile Hacking Labs. Try to solve the lab on your own first hosted here: https://www.mobilehackinglab.com/course/lab-document-viewer-rce before peeking.
+
 
 ### Lab Info
 In this challenge, we are tasked to exploit a path traversal vulnerability within a "Document Viewer" application then escalate the attack by leveraging a dynamic code loading scenario to perform remote code execution (RCE). 
@@ -178,7 +178,7 @@ Now this is where it gets interesting. The uri parameter comes from the intent.d
 
 This is dangerous since the `getLastPathSegment` method retrieves the *decoded* last segment in the path which means that if we provide a path like `/..%2f..%2f..%2f..%2ftest` it will return `../../../../test` thus highlighting our directory traversal attack path. To demonstrate the behavior, I created a custom frida snippet to monitor when the copyFileFromUri method is called and what file(s) are created then tested it by sending a sample intent with our controlled input data.
 
-##### file-hook.js
+#### file-hook.js
 ```javascript
 Java.perform(function(){
     let Companion = Java.use("com.mobilehackinglab.documentviewer.CopyUtil$Companion");
@@ -224,9 +224,8 @@ private final void loadProLibrary() {
 
 So what this method does it it loads an architecture-specific version of the docviewer_pro.so from its directory then proceeds to load the native library via the call to `System.load`. 
 
-:::danger
-:bug: The attack plan now becomes clear: we need to exploit the **`getLastPathSegment`** path traversal vulnerability in order to write our malicious .so binary into the **`/data/data/com.mobilehackinglab.documentviewer/files/native-libararies/<device-arch>`** directory so that when the app loads the native lib on the call to **`loadProLibrary`** then our payload will get executed thus allowing us to achieve **RCE** on the system.
-:::
+> :bug: The attack plan now becomes clear: we need to exploit the **`getLastPathSegment`** path traversal vulnerability in order to write our malicious .so binary into the **`/data/data/com.mobilehackinglab.documentviewer/files/native-libararies/<device-arch>`** directory so that when the app loads the native lib on the call to **`loadProLibrary`** then our payload will get executed thus allowing us to achieve **RCE** on the system.
+
 
 
 ## building the payload :wrench: 

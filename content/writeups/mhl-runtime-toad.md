@@ -3,7 +3,8 @@ title: "MobileHackingLab — Runtime Toad Writeup"
 date: 2025-11-10
 category: "mobile"
 tags: ["android", "unity", "rce", "ctf", "native"]
-description: "Exploiting CVE-2025-59489 in Unity's runtime — local and remote RCE via -xrsdk-pre-init-library intent extras."
+summary: "Exploiting CVE-2025-59489 in Unity's runtime — local and remote RCE via -xrsdk-pre-init-library intent extras."
+source: "research"
 draft: false
 ---
 ## MobileHackingLab - Runtime Toad Writeup
@@ -20,16 +21,15 @@ More details about the vulnerability can be read from `@ryotkak`'s post here: ht
 
 According to the author, the exploit can be performed through: (1) **a third-party mobile app installed on the device** and (2) **it can also be exploited remotely if the target application writes attacker-controlled content to it's private storage**. On this challenge, we'll be able to explore both approaches.
 
-:::info 
-ℹ️ Quick sidenote on (1): **third-party terminology**
-On the article, the author states that "any _**malicious application**_ installed on the same device can exploit this vulnerability". But we're moving away from this in favor of the "third-party" terminology since i do agree with ch0pin's point that triagers dismiss most mobile app exploits by saying that the attacker must convince the victim to install a malicious app first. Thus it would be better to state that any third-party app can exploit it since it raises the question what if something legitimate like Google Chrome goes rouge or is used as a gadget for exploitation. 
+> ℹ️ Quick sidenote on (1): **third-party terminology**
+> On the article, the author states that "any _**malicious application**_ installed on the same device can exploit this vulnerability". But we're moving away from this in favor of the "third-party" terminology since i do agree with ch0pin's point that triagers dismiss most mobile app exploits by saying that the attacker must convince the victim to install a malicious app first. Thus it would be better to state that any third-party app can exploit it since it raises the question what if something legitimate like Google Chrome goes rouge or is used as a gadget for exploitation.
+>
+> Ch0pin's post can be found here: https://www.linkedin.com/posts/valsamaras_android-web-attack-surface-activity-7379817572491247617-3ZWB
+>
+> Also an additional proof from an intent interception issue I submitted some time back:
+> ![image](/images/writeups/rkhJLoakZx.png)
+>
 
-Ch0pin's post can be found here: https://www.linkedin.com/posts/valsamaras_android-web-attack-surface-activity-7379817572491247617-3ZWB
-
-Also an additional proof from an intent interception issue I submitted some time back:
-![image](/images/writeups/rkhJLoakZx.png)
-
-:::
 #### Is the target app a Unity-based one?
 When loading the apk on jadx-gui, we can see that the main/launcher activity of the app is `com.unity3d.player.UnityPlayerActivity`. That, along with the presence of native libraries such as `libil2cpp`, `libmain`, and `libunity` should be enough to say that it is unity-based. 
 

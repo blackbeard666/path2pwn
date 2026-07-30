@@ -1,27 +1,31 @@
+{{- /* The header search box is gone: the filter bar on the index replaced it,
+       and a second search affordance pointing at the same index was redundant.
+       aria-current marks the active section for screen readers, not just
+       colour. */ -}}
 <header class="site-header">
   <nav class="site-nav">
-    <a href="{{ "/" | relURL }}" class="site-logo">{{ .Site.Title }}</a>
+    {{- /* The logo is the home link, so it carries aria-current on the home page.
+           Home is NOT the "all" item: home is the curated landing page (about ·
+           latest · explore) and /all/ is the see-everything archive. That is why
+           the logo and the "all" nav item go to different places, and why neither
+           is redundant. */ -}}
+    <a href="{{ "/" | relURL }}" class="site-logo"
+       {{ if .IsHome }}aria-current="page"{{ end }}>{{ .Site.Title }}<span class="site-logo-caret">_</span></a>
+
     <div class="nav-right">
-      <a href="{{ "/writeups/" | relURL }}">writeups</a>
-      <a href="{{ "/cves/" | relURL }}">cves</a>
-      <a href="{{ "/tags/" | relURL }}">tags</a>
-      <a href="https://carlojaeavila.dev">carlojaeavila.dev ↗</a>
-      <div class="nav-search">
-        <input
-          type="search"
-          id="search-input"
-          class="nav-search-input"
-          placeholder="search…"
-          autocomplete="off"
-          autocapitalize="off"
-          spellcheck="false"
-          aria-label="Search cves, writeups, and tags"
-        />
-        <div class="search-dropdown" id="search-dropdown">
-          <p class="search-status" id="search-status"></p>
-          <div class="search-results" id="search-results"></div>
-        </div>
-      </div>
+      <ul class="nav-links">
+        {{ $cur := .RelPermalink }}
+        <li><a href="{{ "/cves/" | relURL }}" {{ if hasPrefix $cur (("/cves/" | relURL)) }}class="active" aria-current="page"{{ end }}>cves</a></li>
+        <li><a href="{{ "/writeups/" | relURL }}" {{ if hasPrefix $cur (("/writeups/" | relURL)) }}class="active" aria-current="page"{{ end }}>writeups</a></li>
+        <li><a href="{{ "/tags/" | relURL }}" {{ if hasPrefix $cur (("/tags/" | relURL)) }}class="active" aria-current="page"{{ end }}>tags</a></li>
+        <li><a href="{{ "/all/" | relURL }}" {{ if hasPrefix $cur (("/all/" | relURL)) }}class="active" aria-current="page"{{ end }}>all</a></li>
+        <li><a href="https://carlojaeavila.dev" target="_blank" rel="noopener">carlojaeavila.dev ↗</a></li>
+      </ul>
+
+      <button class="theme-toggle" type="button" data-theme-toggle
+              aria-label="Switch to light theme" aria-pressed="false">
+        <span class="theme-knob" aria-hidden="true"></span>
+      </button>
     </div>
   </nav>
 </header>

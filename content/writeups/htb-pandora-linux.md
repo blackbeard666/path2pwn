@@ -3,10 +3,10 @@ title: "HackTheBox — Pandora (Linux, Easy)"
 date: 2022-03-22
 category: "linux"
 tags: ["htb", "snmp", "cms", "sqli", "privesc", "suid"]
-description: "HackTheBox Pandora: SNMP credential leak → PandoraFMS unauthenticated SQLi to RCE → SUID binary path hijacking for root."
+summary: "HackTheBox Pandora: SNMP credential leak → PandoraFMS unauthenticated SQLi to RCE → SUID binary path hijacking for root."
+source: "research"
 draft: false
 ---
-# Pandora: Linux - Easy
 
 Pandora was an easy-rated Linux machine on HackTheBox which highlights the importance of proper enumeration, exploitation of PandoraFMS, and some straightforward privesc techniques. 
 

@@ -1,0 +1,207 @@
+/* ============================================================
+   tokens.css — single source of truth for BOTH sites.
+
+   Two vendored copies, which must stay byte-identical:
+     carlo-dev/css/tokens.css                        <- canonical
+     carlo-notes/themes/carlo/static/css/tokens.css  <- mirror
+
+   These are separate git repos, so there is no submodule and no
+   CI copy step. If you edit one, edit the other in the same
+   session. Import it FIRST, before any other stylesheet.
+
+   Dark is the default. Light is opt-in via <html data-theme="light">.
+   Nothing else in either codebase should declare a raw hex.
+   ============================================================ */
+
+:root {
+  /* ---- ground & ink (dark, default) ---- */
+  --ground:        #171615;  /* page background — warm near-black */
+  --surface:       #201e1d;  /* code blocks, chrome bars, inset panels */
+  --surface-2:     #1e1c1b;  /* alternate section band (optional) */
+  --ink:           #f3f2f2;  /* body text, 2px rules */
+
+  /* ---- red = OFFENSE. what you did. ---- */
+  --r:             #e01b24;
+  --r-400:         #ff8e92;  /* red text on dark (comments in code) */
+  --r-700:         #ae1800;  /* red text on light ground */
+  --r-tint:        rgba(224, 27, 36, 0.18);  /* vulnerable-line highlight */
+  /* Text on ANY saturated fill — the contact bleed and every severity badge.
+     Deliberately NOT --ink: --ink is #f3f2f2 on dark (4.32:1 on --r, fails)
+     and #201e1d on light (3.44:1, worse). Pure white clears 4.5:1 on all of
+     them and, being theme-invariant, needs no light-theme override. */
+  --on-r:          #ffffff;
+
+  /* ---- green = THE PLATFORM. the target and its state. ---- */
+  --g:             #3ddc84;  /* Android green */
+  --g-300:         #9df0c3;  /* code identifiers, CVE ids */
+  --g-400:         #6ce6a6;  /* string literals, tags */
+  --g-700:         #1f8a52;  /* glow source only — see --g-edge */
+  --g-800:         #14603a;
+  --g-900:         #0d3a24;  /* text ON a green fill */
+
+  /* Visible green border in BOTH themes. The handoff used --g-700 for badge
+     borders as well as glows, but the light theme flips --g-700 to a pale mint
+     (#9df0c3) so it can act as a glow on paper — which drops a badge border to
+     1.20:1 and makes it effectively invisible. Borders need their own token. */
+  --g-edge:        #1f8a52;
+
+  /* ---- neutral ramp ----
+     n-600 and n-700 are nudged one step lighter than the handoff's values
+     (#7d7979 / #605d5d), which measured 4.20:1 and 2.77:1 on --ground and
+     failed AA as small text and as control borders respectively. The change
+     is ~2 RGB steps and holds the ramp's ordering.
+
+     --n-800 is left at 1.79:1 on purpose. It is only ever a decorative
+     hairline or a grid gap, never a control boundary or text, so WCAG
+     1.4.11 does not apply — and lightening it would visibly coarsen the
+     rules that do most of the design's organising work. */
+  --n-300:         #d7d3d3;
+  --n-400:         #bab6b6;  /* secondary body copy */
+  --n-500:         #9b9797;  /* metadata */
+  --n-600:         #827e7e;  /* de-emphasised metadata — 4.50:1 */
+  --n-700:         #666262;  /* control borders — 3.00:1 */
+  --n-800:         #444141;  /* hairline row rules, grid gaps — decorative */
+
+  /* ---- type ---- */
+  --font-heading:  'Archivo', system-ui, sans-serif;
+  --font-body:     'Archivo', system-ui, sans-serif;
+  --font-mono:     'JetBrains Mono', ui-monospace, monospace;
+
+  /* ---- structure ---- */
+  --radius:        0;        /* never round a corner */
+  --rule:          2px;      /* major divider */
+  --hairline:      1px;      /* row rule inside a section */
+  --gutter:        44px;     /* section padding AND grid cell size */
+
+  /* Lattice line. 0.010, NOT the handoff's 0.045 — and do not "fix" this by
+     matching the light theme's WCAG contrast ratio, which is what produced
+     0.045 in the first place.
+
+     At 0.045 the two themes measure an essentially identical WCAG ratio
+     (1.110 dark / 1.111 light) and yet dark reads far louder. WCAG is the
+     wrong model for a thin line on a near-black ground: its +0.05 term
+     dominates when luminance is tiny, so a matched ratio hides an enormous
+     RELATIVE increment. Weber contrast (|dL| / L_background), which is what
+     predicts how much a thin line shouts, put dark at 0.787 against light's
+     0.106 — 7.4x louder. 0.010 brings it to 1.44x. (0.007 is the exact
+     perceptual match but risks vanishing on low-gamma displays.) */
+  --grid-line:     rgba(243, 242, 242, 0.010);
+
+  /* ---- severity ----
+     The ONE sanctioned exception to the two-accent rule. Severity is data,
+     not chrome: readers pattern-match red/amber/green from NVD instantly,
+     and that legibility beats accent purity here. No OTHER new colour gets
+     introduced — see the two-accent rule in CLAUDE.md.
+
+     Deliberately NOT swapped in the light theme: a severity level means the
+     same thing on either ground, so the fill must not move. Every value is
+     checked against --on-r (#fff) at the badge's 11px/700, which needs
+     4.5:1, not 3:1. */
+  --sev-critical:  #b81219;  /* white 6.69:1 */
+  --sev-high:      #e01b24;  /* white 4.83:1 — same value as --r */
+  --sev-medium:    #a66809;  /* white 4.56:1 */
+  --sev-low:       #1e8650;  /* white 4.58:1 */
+}
+
+/* ---- light theme: same tokens, swapped ground; both accents step
+       one notch deeper so they hold contrast on paper ---- */
+[data-theme="light"] {
+  --ground:        #f3f2f2;
+  --surface:       #eae9e9;
+  --surface-2:     #eae7e7;
+  --ink:           #201e1d;
+
+  --r:             #e01b24;
+  --r-400:         #ae1800;
+  --r-tint:        rgba(224, 27, 36, 0.10);
+
+  /* --g is deepened from the handoff's #1f8a52. Because the base rules
+     below set `a { color: var(--g) }`, this token has to clear 4.5:1 as
+     body-size text on --ground; #1f8a52 on #f3f2f2 measures 3.90:1 and
+     fails. #146b3d measures 5.87:1 and also holds --g-900 (#f3f2f2) as
+     a label on top of it when --g is used as a button fill.
+
+     --g-400 is deepened for the same reason: it colours tags, which are
+     links, so it is body-size text. #1f8a52 was 3.90:1; #1c7e4b is 4.54:1. */
+  --g:             #146b3d;
+  --g-300:         #14603a;
+  --g-400:         #1c7e4b;
+  --g-700:         #9df0c3;  /* glow source on paper */
+  --g-edge:        #146b3d;  /* 5.87:1 — stays a visible border */
+  --g-900:         #f3f2f2;
+
+  --n-300:         #444141;
+  --n-400:         #444141;
+  --n-500:         #605d5d;
+  --n-600:         #726e6e;  /* 4.51:1 */
+  --n-700:         #8f8b8b;  /* 3.01:1 */
+  --n-800:         #bab6b6;  /* decorative — see the dark ramp note */
+
+  --grid-line:     rgba(32, 30, 29, 0.055);
+}
+
+/* ============================================================
+   Base — the few things that must be global.
+   Everything else belongs in the page's own stylesheet.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* The ground also goes on <html> so that a page which constrains <body> to a
+   max-width still fills the viewport on an ultra-wide monitor. The lattice
+   stays on <body> — it is the content column that should look gridded. */
+html { color-scheme: dark; background-color: var(--ground); }
+[data-theme="light"] { color-scheme: light; }
+
+body {
+  margin: 0;
+  background-color: var(--ground);
+  /* the 44px modular grid — the design system's "let the grid show" */
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--gutter) var(--gutter);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 0;
+}
+
+a { color: var(--g); text-decoration: none; }
+a:hover { color: var(--g-300); }
+
+code, pre, kbd { font-family: var(--font-mono); }
+
+::selection { background: var(--g); color: var(--g-900); }
+
+:focus-visible { outline: 2px solid var(--g); outline-offset: 2px; }
+
+/* skip link — currently missing on both sites */
+.skip {
+  position: absolute; left: -9999px;
+  background: var(--g); color: var(--g-900);
+  padding: 12px 16px; font-family: var(--font-mono); font-weight: 700;
+}
+.skip:focus { left: var(--gutter); top: 12px; z-index: 100; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* At phone width the lattice competes with the content. */
+@media (max-width: 720px) {
+  body { background-image: none; }
+}
+
+/* panels that sit ON the grid need a solid ground so the lattice
+   doesn't run under code or logos */
+.solid { background-color: var(--ground); }

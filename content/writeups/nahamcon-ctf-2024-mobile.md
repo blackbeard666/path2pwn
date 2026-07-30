@@ -3,7 +3,8 @@ title: "Nahamcon CTF 2024 — Mobile Writeups"
 date: 2024-05-24
 category: "mobile"
 tags: ["ctf", "android", "frida", "flutter", "godot", "re"]
-description: "Speedrun of the mobile track at Nahamcon CTF 2024: logcat, strings, Godot script extraction, Flutter instrumentation, and Frida hooking."
+summary: "Speedrun of the mobile track at Nahamcon CTF 2024: logcat, strings, Godot script extraction, Flutter instrumentation, and Frida hooking."
+source: "ctf"
 draft: false
 ---
 ## Nahamcon CTF 2024 - Mobile Challenge Writeups

@@ -3,10 +3,10 @@ title: "TCP1P CTF 2023 — Mobile Writeups"
 date: 2023-10-16
 category: "mobile"
 tags: ["ctf", "android", "intent", "webview", "content-provider"]
-description: "Mobile challenge solutions from TCP1P CTF: exported activity exploitation, implicit intent hijacking, and a WebView/JS interface/content provider chain."
+summary: "Mobile challenge solutions from TCP1P CTF: exported activity exploitation, implicit intent hijacking, and a WebView/JS interface/content provider chain."
+source: "ctf"
 draft: false
 ---
-# TCP1P Capture the Flag: Mobile Writeups
 ![](/images/writeups/rkb0FZq-6.png)
 
 

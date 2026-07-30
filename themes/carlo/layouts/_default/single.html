@@ -1,32 +1,107 @@
 {{ define "main" }}
+{{- /* A write-up. Sticky TOC left, article right.
+
+       No closing call-to-action: the article ends on the timeline and prev/next.
+       A "there are five more" block at the end of a technical write-up reads as
+       a house ad. Don't add one back. */ -}}
+
+<header class="post-head">
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="{{ "/" | relURL }}">all</a>
+    <span aria-hidden="true">/</span>
+    <a href="{{ "/" | relURL }}{{ .Type }}/">{{ .Type }}</a>
+    <span aria-hidden="true">/</span>
+    <span class="crumb-current">{{ with .Params.cve }}{{ . }}{{ else }}{{ .Title | truncate 42 }}{{ end }}</span>
+  </nav>
+
+  <h1>{{ .Title }}</h1>
+
+  <div class="post-meta">
+    {{ with .Params.cve }}<a class="badge-cve" href="{{ $.Params.nvd | default "#" }}" target="_blank" rel="noopener">{{ . }}</a>{{ end }}
+    {{ with .Params.severity }}
+      {{- /* Every level is a solid fill; the modifier just picks which. Falls
+             back to is-medium for an unrecognised value rather than rendering
+             an unstyled badge. */ -}}
+      {{ $sev := lower . }}
+      <span class="badge-sev {{ if in (slice "critical" "high" "low") $sev }}is-{{ $sev }}{{ else }}is-medium{{ end }}">
+        {{ . }}{{ with $.Params.cvss }} · {{ . }}{{ end }}
+      </span>
+    {{ end }}
+    {{ with .Params.category }}<span class="badge-cat">{{ . }}</span>{{ end }}
+    {{ with .Params.vendor }}<span>{{ . }}</span>{{ end }}
+    {{ with .Params.affected }}<span>{{ . }}</span>{{ end }}
+    <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
+    <span>{{ .ReadingTime }} min</span>
+    {{ if .Params.cve }}{{ with .Params.status }}<span class="row-status">{{ . }} upstream</span>{{ end }}{{ end }}
+  </div>
+</header>
+
 <div class="post-layout">
-  <article class="post-content">
-    <header class="post-header">
-      <h1 class="post-title-h1">{{ .Title }}</h1>
-      <div class="post-meta">
-        <time>{{ .Date.Format "2006-01-02" }}</time>
-        {{ if or .Params.category .Params.tags }}
-        <div class="post-tags">
-          {{ with .Params.category }}<span class="tag tag-main">{{ . }}</span>{{ end }}
-          {{ range .Params.tags }}<a href="{{ "/tags/" | relURL }}{{ . | urlize }}/" class="tag">{{ . }}</a>{{ end }}
-        </div>
-        {{ end }}
+  {{- /* .toc wrapper + raw .TableOfContents inside is what static/js/toc.js
+         keys off (`.toc nav a`). Keep both if you touch this. */ -}}
+  <aside class="toc-side">
+    {{ if .TableOfContents }}
+    <details class="toc-details" open>
+      <summary class="toc-label">On this page</summary>
+      <div class="toc" data-toc>
+        {{ .TableOfContents }}
       </div>
-      {{ with .Params.description }}
-      <p class="post-description">{{ . }}</p>
-      {{ end }}
-    </header>
+    </details>
+    {{ end }}
+
+    {{ if or .Params.nvd .Params.advisory .Params.patch }}
+    <div class="toc-links">
+      <p class="toc-label">References</p>
+      <ul>
+        {{ with .Params.nvd }}<li><a href="{{ . }}" target="_blank" rel="noopener">NVD entry ↗</a></li>{{ end }}
+        {{ with .Params.advisory }}<li><a href="{{ . }}" target="_blank" rel="noopener">vendor advisory ↗</a></li>{{ end }}
+        {{ with .Params.patch }}<li><a href="{{ . }}" target="_blank" rel="noopener">patch commit ↗</a></li>{{ end }}
+      </ul>
+    </div>
+    {{ end }}
+  </aside>
+
+  <article class="post-content">
+    {{ with .Params.summary }}<p class="post-lede">{{ . }}</p>{{ end }}
+
     <div class="post-body">
       {{ .Content }}
     </div>
-  </article>
-  {{ if .TableOfContents }}
-  <aside class="toc-sidebar">
-    <p class="toc-label">// on this page</p>
-    <nav class="toc">
-      {{ .TableOfContents }}
+
+    {{ with .Params.tags }}
+    <div class="post-tags">
+      {{ range . }}<a href="{{ "/tags/" | relURL }}{{ . | urlize }}/">#{{ . }}</a>{{ end }}
+    </div>
+    {{ end }}
+
+    {{ with .Params.timeline }}
+    <section class="timeline">
+      <h2>Timeline</h2>
+      <dl>
+        {{ range . }}
+        <div class="timeline-row">
+          <dt>{{ .date }}</dt>
+          <dd{{ if or (in (lower .event) "patch") (in (lower .event) "disclosure") (in (lower .event) "fix") }} class="is-key"{{ end }}>{{ .event }}</dd>
+        </div>
+        {{ end }}
+      </dl>
+    </section>
+    {{ end }}
+
+    <nav class="post-nav" aria-label="Adjacent posts">
+      <div class="post-nav-prev">
+        {{ with .PrevInSection }}
+        <span class="post-nav-label">← previous</span>
+        <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+        {{ end }}
+      </div>
+      <div class="post-nav-next">
+        {{ with .NextInSection }}
+        <span class="post-nav-label">next →</span>
+        <a href="{{ .RelPermalink }}">{{ .Title }}</a>
+        {{ end }}
+      </div>
     </nav>
-  </aside>
-  {{ end }}
+  </article>
 </div>
 {{ end }}

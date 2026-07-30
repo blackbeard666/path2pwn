@@ -1,16 +1,21 @@
 <!DOCTYPE html>
-<html lang="{{ .Site.LanguageCode }}">
+<html lang="{{ .Site.Language.Locale }}">
 <head>
   {{ partial "head.html" . }}
 </head>
 <body>
+  <a class="skip" href="#main">skip to content</a>
   {{ partial "header.html" . }}
-  <main class="site-main">
+  <main class="site-main" id="main">
     {{ block "main" . }}{{ end }}
   </main>
   {{ partial "footer.html" . }}
+  {{/* Each of these no-ops if its markup isn't on the page, so they load
+       unconditionally. fuse.min.js is self-hosted (~6 KB gzip) — do not swap it
+       for a CDN link; the whole point is no third-party calls. */}}
   <script src="{{ "js/toc.js" | relURL }}"></script>
+  <script src="{{ "js/ui.js" | relURL }}"></script>
   <script src="{{ "js/fuse.min.js" | relURL }}"></script>
-  <script src="{{ "js/search.js" | relURL }}"></script>
+  <script src="{{ "js/filter.js" | relURL }}"></script>
 </body>
 </html>

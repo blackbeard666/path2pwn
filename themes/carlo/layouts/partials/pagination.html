@@ -1,5 +1,8 @@
+{{- /* data-paginator lets filter.js hide this while a filter is active: paging
+       through server-rendered slices is meaningless once results are being
+       rendered from the full index. */ -}}
 {{ if gt .TotalPages 1 }}
-<nav class="pagination">
+<nav class="pagination" data-paginator aria-label="Pagination">
   {{ if .HasPrev }}<a href="{{ .Prev.URL }}" class="pagination-link">← prev</a>
   {{ else }}<span class="pagination-link pagination-disabled">← prev</span>{{ end }}
   <span class="pagination-pages">{{ .PageNumber }} / {{ .TotalPages }}</span>

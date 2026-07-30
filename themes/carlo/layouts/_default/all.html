@@ -1,0 +1,19 @@
+{{ define "main" }}
+{{- /* /all/ — the one unified view. Every CVE deep-dive and writeup in one
+       paginated stream with an unscoped filter bar.
+
+       This lived at /search/ until round 7; the page never only searched, and
+       "search" was the nav word nobody browsing ever clicked. Any surviving
+       /all/?q=… or old /search/?q=… link still arrives pre-applied, because
+       filter.js reads ?q= on any page rather than on this one specifically. */ -}}
+{{ $pages := where .Site.RegularPages "Type" "in" (slice "cves" "writeups") }}
+{{ $paginator := .Paginate $pages }}
+{{ partial "index-page.html" (dict
+    "ctx" .
+    "pages" $pages
+    "paginator" $paginator
+    "scope" ""
+    "title" "ALL POSTS"
+    "intro" "Filter every CVE deep-dive and write-up by title, CVE id, vendor, tag, or body text. Matches are found across all pages, not just this one."
+) }}
+{{ end }}

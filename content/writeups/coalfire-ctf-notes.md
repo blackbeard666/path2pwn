@@ -3,11 +3,9 @@ title: "CoalFire CTF Notes"
 date: 2020-12-04
 category: "pwn"
 tags: ["ctf", "rop", "ret2libc", "re", "forensics", "shellcode"]
-description: "CoalFire CTF challenge notes covering stack shellcode injection, ret2libc, write-what-where, anti-debug bypass, and Firefox profile forensics."
+summary: "CoalFire CTF challenge notes covering stack shellcode injection, ret2libc, write-what-where, anti-debug bypass, and Firefox profile forensics."
+source: "ctf"
 draft: false
----
----
-title: CoalFire CTF Notes
 ---
 
 ## CoalFire CTF Notes
@@ -19,14 +17,14 @@ HTB CTF challs are sometimes reused
 
 quick file recon reveals that we have a 64-bit pwnable challenge which is not stripped -> making it easier to reverse engineer. doing `checksec` shows that most protections are disabled and that we are dealing with a [Position Independent Executable (PIE)](https://github.com/ir0nstone/pwn-notes/blob/master/types/stack/pie/README.md) binary. 
 
-#### Reverse Engineering
+### Reverse Engineering
 ![](https://i.imgur.com/r65c3dA.png)
 
 Opening the binary in GHIDRA, we only have the main function to analyze. We can ignore `setup` since it only deals with the normal buffering issues. First, the program asks for an integer input in which `1` is the correct answer to take. 
 
 Which leads us to the vulnerable parts of the code. The `printf` statement on line 14 leaks the address of `buffer` which is a memory location on the stack. The call to `read` on line 16 reads more data than the buffer could handle (buffer has a 32 byte space while `read` reads 633 bytes) thus leading to a buffer overflow. With this, we can overwrite stack pointers and gain control of code flow. 
 
-#### Crafting the payload
+### Crafting the payload
 
 We deal with the easy part first, which is leaking the stack address for our input buffer. 
 
@@ -89,7 +87,7 @@ We were given a zip file which contained the challenge binary and its correspond
 
 x86_64 binary which is not stripped, has NX + full RELRO but `NO CANARY` and NO `PIE` which means that the program has no protections for stack buffer overflows and addresses remain static. Grepping for the libc version reveals that it is 2.27, the libc for ubuntu 18.04 iirc. 
 
-#### Reverse Engineering
+### Reverse Engineering
 ![](https://i.imgur.com/SIpuM8G.png)
 
 The bug is clear, the program accepts more input than the stack buffer can handle -> thus leading to another buffer overflow. Since there are no backdoor functions (hidden functions that give us a shell or the flag), our goal is to get RCE/shell on the remote server. For this we need a few things:
@@ -97,7 +95,7 @@ The bug is clear, the program accepts more input than the stack buffer can handl
 - a read primitive to leak some libc addresses, since we will be performing a ret2libc attack
 - some gadgets to do some ROP
 
-#### Crafting the payload
+### Crafting the payload
 For the read primitive, we can simply reuse some functions in the binary to return the values of some GOT addresses (which hold pointers to libc). What I mean by this is: 
 ![](https://i.imgur.com/ZC5wf3S.png)
 
@@ -179,7 +177,7 @@ We need to place the extra `ret` instruction to account for alignment issues whe
 ## Air Supplies, pwn 350
 ![](https://i.imgur.com/DH1T3cb.png)
 
-#### Reverse Engineering
+### Reverse Engineering
 ![](https://i.imgur.com/avhq7IA.png)
 
 first step of the program accepts either 1 or 2 as the input, which then gets handled by the `choice` function.
@@ -330,7 +328,7 @@ We need to break this down line by line:
 - lines 38-39: basically checks if our input matches the secret key before proceeding to decrypt
 - lines 40-44: runs decrypt on `new_chunk` using our input as the key. `new_chunk` is a pointer to some encrypted bytes which might be the flag when decrypted. 
 
-#### Anti-Debug Bypass
+### Anti-Debug Bypass
 
 I opened up the binary in GDB, disassembled the main function and searched for the parts where we needed to bypass:
 ![](https://i.imgur.com/X4YFSFy.png)

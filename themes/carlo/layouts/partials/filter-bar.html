@@ -1,0 +1,66 @@
+{{- /* Filter bar for a paginated archive.
+
+       `.solid` because it sits on the 44px lattice and holds dense controls.
+
+       `data-filter-scope` restricts matching to one section, so the filter on
+       /cves/ can never surface a writeup. Empty on /all/, which is the one
+       page that searches everything.
+
+       The type chip ("cves") only appears when there is no scope — on /cves/ it
+       would be a no-op and on /writeups/ it would be a contradiction.
+
+       Category chips are derived from the pages actually present, so a new
+       `category:` value shows up on its own with nothing to maintain here.
+
+       Progressive: with JS off, the input and chips do nothing and the
+       paginated list below still renders and reads fine. */ -}}
+{{ $pages := .pages }}
+{{ $scope := .scope }}
+{{ $cats := slice }}
+{{ range $pages }}{{ with .Params.category }}{{ if not (in $cats .) }}{{ $cats = $cats | append . }}{{ end }}{{ end }}{{ end }}
+
+<div class="filter-bar solid" data-filter-bar
+     data-index-url="{{ "/index.json" | relURL }}"
+     data-filter-scope="{{ $scope }}"
+     data-filter-count="{{ len $pages }}">
+  <div class="filter-search">
+    <span class="filter-icon" aria-hidden="true">⌕</span>
+    <label class="visually-hidden" for="filter-input">Filter posts</label>
+    <input type="search" id="filter-input" data-filter-input
+           placeholder="filter by title, CVE id, or tag…"
+           autocomplete="off" autocapitalize="off" spellcheck="false" />
+  </div>
+
+  {{- /* Only render the chip group if it can actually change the result.
+
+         On /cves/ every post is category "mobile", so the group was just
+         "all | mobile" and both returned all six rows — a control that cannot
+         filter anything invites a click that does nothing, which a cold reviewer
+         called out. The group needs either two or more distinct categories, or
+         the cve/writeup split that only exists when unscoped. */ -}}
+  {{ $showChips := or (not $scope) (ge (len $cats) 2) }}
+  {{ if $showChips }}
+  <div class="filter-chips" role="group" aria-label="Filter by category">
+    <button type="button" class="filter-chip is-on" data-cat-chip="" aria-pressed="true">all</button>
+    {{ if not $scope }}
+    <button type="button" class="filter-chip" data-cat-chip="cve" aria-pressed="false">cves</button>
+    {{ end }}
+    {{ range (sort $cats) }}
+    <button type="button" class="filter-chip" data-cat-chip="{{ . }}" aria-pressed="false">{{ . }}</button>
+    {{ end }}
+  </div>
+  {{ end }}
+
+  <div class="filter-sort">
+    <label class="visually-hidden" for="filter-sort">Sort</label>
+    <select id="filter-sort" data-filter-sort>
+      <option value="newest">newest first</option>
+      <option value="oldest">oldest first</option>
+      <option value="title">title a–z</option>
+    </select>
+  </div>
+</div>
+
+<p class="filter-status" data-filter-status aria-live="polite">
+  {{ len $pages }} post{{ if ne (len $pages) 1 }}s{{ end }}
+</p>
