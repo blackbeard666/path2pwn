@@ -23,14 +23,21 @@
    by ~268px. "70ch" looked like one measure and behaved like one per font-size.
    662px is 70ch at the body's 16.5px, so paragraphs are unchanged and everything
    else now lines up with them. Evidence still opts out via `max-width: none`. */
-:root { --measure: 662px; }
+/* --header-h is the height of the sticky .site-header. It was the literal 84px
+   in three places — the anchor scroll offset, the sticky TOC's `top`, and now
+   that TOC's max-height — and those three have to agree or the TOC either
+   hides under the header or leaves a gap below it. */
+:root {
+  --measure: 662px;
+  --header-h: 84px;
+}
 
 /* ---- PAGE SHELL ---- */
 
 html {
   scroll-behavior: smooth;
   /* clears the sticky header when jumping to a heading or #anchor */
-  scroll-padding-top: 84px;
+  scroll-padding-top: var(--header-h);
 }
 
 /* Sticky footer: body is the flex column, .site-main absorbs the slack, so a
@@ -327,6 +334,7 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
   font-weight: 900;
   letter-spacing: -0.035em;
   line-height: 0.95;
+  color: var(--g);
 }
 .index-intro {
   margin-top: 18px;
@@ -426,9 +434,53 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
   border-right: var(--rule) solid var(--ink);
 }
 
+/* Row hover/focus. Only .row-title a used to react, so browsing a list gave no
+   feedback unless the pointer happened to be on the title text itself — the
+   meta line, the summary, the tag row and all the padding between them were
+   dead. The whole row now responds, on three channels at once because one alone
+   is too quiet: a --surface fill (the biggest signal, and the token already
+   means "inset panel"), a 3px --g left marker, and the title taking its hover
+   colour from anywhere in the row.
+
+   The left marker is RESERVED as a transparent border at rest, with padding-left
+   pulled back by the same 3px, so appearing on hover cannot shift the row's
+   text — and the rows stay flush with the .index-head h1 above them, which the
+   design cares about more than most things. padding-left must stay AFTER the
+   padding shorthand or the shorthand resets it.
+
+   No :hover-only logic: :focus-within gives the same treatment to keyboard
+   browsing, including tabbing onto a tag link inside the row. Pure CSS on
+   `.row`, so filter.js's generated rows get it for free — they emit the same
+   element and that mirror needs nothing here. */
 .row {
   padding: 24px var(--gutter);
+  padding-left: calc(var(--gutter) - 3px);
   border-bottom: var(--hairline) solid var(--n-800);
+  border-left: 3px solid transparent;
+  transition: background-color 0.12s ease, border-left-color 0.12s ease;
+}
+/* :hover is scoped to pointers that can actually hover. On touch, :hover latches
+   after a tap and leaves a row highlighted with no pointer anywhere near it —
+   same class of bug as the copy button, and the same rule applies: key off
+   hover, never off width. :focus-within stays unconditional, so keyboard
+   browsing is covered on every device. */
+@media (hover: hover) {
+  .row:hover {
+    background-color: var(--surface);
+    border-left-color: var(--g);
+  }
+  .row:hover .row-title a {
+    color: var(--g);
+    text-decoration-color: var(--g);
+  }
+}
+.row:focus-within {
+  background-color: var(--surface);
+  border-left-color: var(--g);
+}
+.row:focus-within .row-title a {
+  color: var(--g);
+  text-decoration-color: var(--g);
 }
 
 .row-meta {
@@ -604,6 +656,7 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
   font-weight: 900;
   line-height: 1;
   letter-spacing: -0.032em;
+  color: var(--g);
 }
 
 .post-meta {
@@ -624,12 +677,37 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
   grid-template-columns: 244px 1fr;
 }
 
+/* Two guards, both measured with scratchpad/toc-check.js. Both are reset in the
+   1100px block below, where this stops being a sticky fixed-width column.
+
+   overflow-wrap, because .post-layout's first column is a FIXED 244px and so
+   cannot grow to fit its contents. Heading text here is often a code identifier
+   with no spaces in it, and `com.mobilehackinglab.documenviewer.MainActivity
+   .onCreate()` painted 319px past the column, straight across the article.
+   .post-content's own `overflow: hidden` does not help — that clips its OWN
+   children, never a sibling's overflow. It is an inherited property, so the
+   .toc-links URLs below are covered by the same declaration.
+
+   max-height, because a sticky element taller than the space beneath its own
+   `top` has a tail that CANNOT be reached: it is pinned, so scrolling the page
+   past it never brings the bottom entries into view. insecure-shop-android-pt1's
+   18-entry outline was already 999px against 720px of room on an 804px viewport,
+   and the wrapping above grew mhl-document-viewer-rce 675px -> 832px, over the
+   same line. Capping it trades a scrollbar for entries you can actually reach. */
 .toc-side {
   align-self: start;
   position: sticky;
-  top: 84px;
+  top: var(--header-h);
+  max-height: calc(100vh - var(--header-h));
+  overflow-y: auto;
+  /* the UA scrollbar is a wide light-grey slab — far too loud beside a column
+     whose own rules are 1px --n-800. Same reasoning as everything else here:
+     it comes from the ramp or it doesn't appear. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--n-700) transparent;
   padding: 32px 20px 40px var(--gutter);
   min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .toc-label {
@@ -663,10 +741,21 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
   color: var(--g-300);
   border-left-color: var(--g);
 }
-/* h3 and deeper step in and drop back */
-.toc ul ul a {
+/* Each level steps in 12px and drops one rung down the neutral ramp. Hugo nests
+   one <ul> per level (startLevel 2, endLevel 4), so these are h3 and h4 — and
+   they MUST stay separate rules. `.toc ul ul a` is a descendant selector, so on
+   its own it also matches h4 and paints it at the h3 indent and size, which
+   flattens the outline at exactly the depth that needs to read as nested.
+   n-400 / n-500 / n-600 are 9.00 / 6.25 / 4.50 on --ground — the ramp bottoms
+   out at n-600, so h4 steps by indent and size, not by going dimmer still. */
+.toc ul ul a {            /* h3 */
   padding-left: 24px;
   font-size: 12.5px;
+  color: var(--n-500);
+}
+.toc ul ul ul a {         /* h4 */
+  padding-left: 36px;
+  font-size: 12px;
   color: var(--n-600);
 }
 
@@ -714,10 +803,40 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
 .post-body ol { list-style: decimal; }
 .post-body li + li { margin-top: 6px; }
 
-/* Numbered h2s, per the design. The counter resets on .post-body. */
-.post-body { counter-reset: h2; }
+/* Section markers.
+
+   THERE ARE NO HEADING NUMBERS ANYWHERE. The design shipped with a CSS counter
+   on h2 (`1 · Background`); hierarchical numbers on h3/h4 were added on top of
+   it and then the whole scheme — h2's original counter included — was removed
+   at Carlo's call, twice over, as clutter. Every counter declaration is gone,
+   not just disabled. Don't reintroduce them at any level.
+
+   What marks a heading instead:
+
+   - COLOUR on the h3/h4 title. --g is the platform accent, and using it here
+     says "structure, not prose" in the one property prose never varies. This
+     is load-bearing: h3/h4 previously had NOTHING — no marker, no rule, only
+     size and weight — so a 16px/700 h4 in 16.5px body prose read as less
+     prominent than a bolded phrase in the paragraph above it (.post-body
+     strong is --n-300, near --ink; that was the actual collision).
+   - h2 stays --ink and is NOT green. At 27px/800 over a 2px --ink rule it is
+     already unmistakable, and green there too would be green as a field. The
+     ink/green split is also what separates a major section from a subsection
+     now that no numbers carry depth.
+   - A BOUNDARY RULE ABOVE h3, closing the previous subsection rather than
+     underlining the new title. h2 keeps its established 2px --ink rule below.
+     h4 gets none; three rule weights in one column is noise.
+
+   Depth between h3 and h4 is carried by size (19 vs 16px), weight (800 vs 700)
+   and the rule — NOT by a second green, because the green ramp does not run
+   dark-to-light consistently across both themes (g-400 is brighter than g on
+   dark, dimmer on light), so a two-green ladder inverts when the theme flips.
+
+   KNOWN COLLISION, accepted: tokens.css sets `a { color: var(--g) }`, so a
+   green heading is exactly the colour of an inline link. They stay separable by
+   size, weight, and the --g-edge underline links carry and headings don't. If
+   this ever reads ambiguously, move the headings rather than the links. */
 .post-body h2 {
-  counter-increment: h2;
   margin-top: 44px;
   padding-bottom: 10px;
   border-bottom: var(--rule) solid var(--ink);
@@ -725,21 +844,28 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.15;
-}
-.post-body h2::before {
-  content: counter(h2) " · ";
   color: var(--g);
 }
 .post-body h3 {
   margin-top: 32px;
+  padding-top: 14px;
+  border-top: var(--hairline) solid var(--n-800);
   font-size: 19px;
   font-weight: 800;
   line-height: 1.25;
+  color: var(--g);
+}
+/* An h3 straight after an h2 has no section above it to close, and the h2's own
+   2px rule is already 32px up — a second divider there is just clutter. */
+.post-body h2 + h3 {
+  padding-top: 0;
+  border-top: 0;
 }
 .post-body h4 {
   margin-top: 26px;
   font-size: 16px;
   font-weight: 700;
+  color: var(--g);
 }
 .post-body strong { color: var(--n-300); font-weight: 700; }
 
@@ -962,12 +1088,16 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
 .post-content .post-tags a:hover { border-color: var(--g); color: var(--g); }
 
 .timeline { margin-top: 44px; }
+/* Timeline is a real article section, rendered by single.html outside
+   .post-body — so it must repeat h2's colour by hand or it sits --ink among
+   green siblings. Keep it in step with .post-body h2. */
 .timeline h2 {
   padding-bottom: 10px;
   border-bottom: var(--rule) solid var(--ink);
   font-size: 27px;
   font-weight: 800;
   letter-spacing: -0.02em;
+  color: var(--g);
 }
 .timeline dl { margin-top: 4px; }
 .timeline-row {
@@ -1046,6 +1176,10 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
   .post-layout { grid-template-columns: 1fr; }
   .toc-side {
     position: static;
+    /* not sticky here, so there is no unreachable tail to cap — and a nested
+       scroll box inside the page flow would be worse than a long <details> */
+    max-height: none;
+    overflow: visible;
     padding: 24px var(--gutter);
     border-bottom: var(--rule) solid var(--ink);
   }
