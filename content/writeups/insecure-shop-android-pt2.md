@@ -8,7 +8,7 @@ source: "research"
 draft: false
 ---
 
-![](https://i.imgur.com/z8Ec1FS.jpg)
+![](/images/writeups/z8Ec1FS.jpg)
 
 ## Patched Target apk
 On later attacks, we will be performing data exfiltration against vulnerable webviews. However, the permissions on the original target application only allowed us to retrieve media files which doesn't really show the impact of the vuln. That's why I patched the application to add a single line in the manifest file:
@@ -21,15 +21,15 @@ android:requestLegacyExternalStorage="true"
 
 ## Vulnerability #8: Insecure Broadcast Receiver
 Exported activities are some possible attack vectors to look out for in the android manifest. In the target application, one such activity that has the attribute `android:exported='true'` is `com.insecureshop.AboutUsActivity`. 
-![](https://i.imgur.com/Tw5K27j.png)
+![](/images/writeups/Tw5K27j.png)
 
 This is the activity that is opened when we try to click the about option in the pop-up menu. Seems innocent, but when we review the underlying code in jadx-gui we see the following:
 
-![](https://i.imgur.com/BCrrqIu.png)
+![](/images/writeups/BCrrqIu.png)
 
 Upon onCreate, the activity registers a new `CustomReceiver()` which listens for the intent `com.insecureshop.CUSTOM_INTENT`
 
-![](https://i.imgur.com/1RSMSWo.png)
+![](/images/writeups/1RSMSWo.png)
 
 When it receives a broadcast with the custom intent filter, the `CustomReceiver` retrieves the value of the string extra `web_url` from the broadcasted intent, passes it as a `url` extra for the new intent then starts the following activity: `WebView2Activity` which just opens the url in a webview. 
 
@@ -78,11 +78,11 @@ Let's take a moment here to briefly discuss two types of intents:
 
 1. **Explicit Intents**
 An explicit intent is one that you use to launch a specific app component, such as a particular activity or service in your app. Notice that the `Intent()`s being created specify which activity to open/use. 
-![](https://i.imgur.com/PKNZ9Ct.png)
+![](/images/writeups/PKNZ9Ct.png)
 
 3. **Implicit Intents**
 An implicit intent specifies an action that can invoke any app on the device able to perform the action. Using an implicit intent is useful when your app cannot perform the action, but other apps probably can and you'd like the user to pick which app to use.
-![](https://i.imgur.com/QsRdxIw.png)
+![](/images/writeups/QsRdxIw.png)
 
 In the case of the `onSendData` method's broadcast, the use of implicit intents to send credentials is dangerous since any app that has a registered broadcast receiver can intercept the intent being sent, therefore allowing attacker apps to retrieve valid credentials by simply listening for that specific intent broadcast.
 
@@ -147,7 +147,7 @@ class InterceptBroadcast : BroadcastReceiver() {
 ## Vulnerability #10: Using Components with Known Vulnerabilities
 The android manifest contains a decleration for the following service: `net.gotev.uploadservice.UploadService`. It doesn't follow the naming convention for the package, so we know that this may be a 3rd party library.
 
-![](https://i.imgur.com/AKljnHN.png)
+![](/images/writeups/AKljnHN.png)
 
 From this point, what we can do is to find public exploits/vulnerability disclosures that affect the library. And we can find one from a HackerOne report: https://hackerone.com/reports/258460
 
@@ -182,7 +182,7 @@ java.lang.SecurityException: Permission Denial: starting Intent { flg=0x10000000
         at android.os.Binder.execTransact(Binder.java:1123)
 ```
 
-![](https://i.imgur.com/Hspiipo.png)
+![](/images/writeups/Hspiipo.png)
 
 Looking at the above code from `com.insecureshop.WebView2Activity` we see that the onCreate method checks first if it has received and intent that contains the parcelable extra, `extra_intent`. If it does, it starts the activity using the embedded intent. This is a dangerous pattern since it would allow malicious applications to start arbitrary components in the context of the vulnerable app. 
 
@@ -218,7 +218,7 @@ The WebView class is an extension of Android's View class that allows you to dis
 
 Webviews are widely used in most android apps, but misconfigurations in these components can lead to dangerous vulnerabilities. Let's try to analyze some of the webview settings in [`com.insecureshop.WebView2Activity`](https://github.com/hax0rgb/InsecureShop/blob/main/app/src/main/java/com/insecureshop/WebView2Activity.kt)
 
-![](https://i.imgur.com/0MGBfvz.png)
+![](/images/writeups/0MGBfvz.png)
 
 This configuration is dangerous, since combining `javaScriptEnabled = true` + `allowUniversalAccessFromFileURLs = true` with the ability to load any arbitrary url can lead to the theft of arbitrary files:
 
@@ -305,15 +305,15 @@ class MainActivity : AppCompatActivity() {
 
 For this vulnerability, let's focus on the [ProductList](https://github.com/hax0rgb/InsecureShop/blob/main/app/src/main/java/com/insecureshop/ProductListActivity.kt) activity and its related parts. Checking the source for the mentioned activity reveals that it registers a broadcast receiver which listens for the `com.insecureshop.action.PRODUCT_DETAIL` intent:
 
-![](https://i.imgur.com/y93mD7X.png)
+![](/images/writeups/y93mD7X.png)
 
 When it receives a corresponding intent, the `ProductDetailBroadcast` receiver starts an activity to open a web page using an implicit intent:
 
-![](https://i.imgur.com/9g5nI5g.png)
+![](/images/writeups/9g5nI5g.png)
 
 If we check the [ProductAdapter](https://github.com/hax0rgb/InsecureShop/blob/main/app/src/main/java/com/insecureshop/ProductAdapter.kt) class, we see that the `PRODUCT_DETAIL` intent is broadcasted whenever we click the more information option:
 
-![](https://i.imgur.com/Qqmd7Or.png)
+![](/images/writeups/Qqmd7Or.png)
 
 So, the workflow here is: user clicks on more info regarding a product -> launches a broadcast with the implicit PRODUCT_DETAIL broadcast -> receiver from ProductListing activity receives the intent -> ProductDetailBroadcast starts an activity using implicit intent. 
 

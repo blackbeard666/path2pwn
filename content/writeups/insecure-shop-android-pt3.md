@@ -14,13 +14,13 @@ This will part will conclude the writeup series on insecure shop. Hopefully, I w
 
 Further examination of the onLogin functionality in the [LoginActivity](https://github.com/hax0rgb/InsecureShop/blob/main/app/src/main/java/com/insecureshop/LoginActivity.kt) shows that there is another branch which gets executed if the login attempt fails:
 
-![](https://i.imgur.com/Ch0ILxI.png)
+![](/images/writeups/Ch0ILxI.png)
 
 If we focus on the code block starting from line 51, we can see that the application iterates through the installed applications in the device and checks for apps whose package names begin with the prefix `com.insecureshopapp`. If it does find such an app, it tries to load the application's `MainInterface` class then calls the `getInstance` method. **This can be dangerous since the validation for choosing apps is very weak, an attacker application's code may be executed in the context of the insecure shop app**. 
 
 To exploit this:
 1. We need to create an app which satisfies the package name check:
-![](https://i.imgur.com/W6N966S.png)
+![](/images/writeups/W6N966S.png)
 
 2. We need to implement the `MainInterface` class along with the method `getInstance(Context context)` which should return an instance of MainInterface. 
 3. Develop the code which should be used to execute arbitrary commands:

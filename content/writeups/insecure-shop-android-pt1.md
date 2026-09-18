@@ -7,7 +7,7 @@ summary: "Part 1: InsecureShop walkthrough covering insecure logging, hardcoded 
 source: "research"
 draft: false
 ---
-![](https://i.imgur.com/4Kp22BV.png)
+![](/images/writeups/4Kp22BV.png)
 
 It's been quite a while since I've last tried to reverse engineer and hunt for vulnerabilities in android applications (last was when I took emapt?), I badly need to brush up on android stuff since I've got a new project in mind. 
 
@@ -73,7 +73,7 @@ cache  code_cache  databases  shared_prefs
 - Mobile Security Testing Guide: https://mobile-security.gitbook.io/mobile-security-testing-guide/android-testing-guide/0x05c-reverse-engineering-and-tampering
 
 ## Mobile App Penetration Testing Process
-![](https://i.imgur.com/okvGYXL.png)
+![](/images/writeups/okvGYXL.png)
 
 
 I won't bore you much with details here, since the MAPT follows pretty much the same procedures as any other pentest approach. 
@@ -103,7 +103,7 @@ I won't bore you much with details here, since the MAPT follows pretty much the 
 
 ## Baby Steps
 The previous sections should be enough to prepare you for the following ones. To begin analyzing the target apk, load it into `jadx-gui` (you should be seeing an interface such as the one below):
-![](https://i.imgur.com/WaMr92H.png)
+![](/images/writeups/WaMr92H.png)
 
 We should also install the application into our testing device. If you're using an emulator, you can simply drag and drop the application into it. If you're using a physical device, connect it into your machine through a usb cable then execute the following commands (this also works for emulators btw):
 
@@ -122,7 +122,7 @@ Success
 ```
 
 Let's get a view of the app:
-![](https://i.imgur.com/4lt9nlA.png)
+![](/images/writeups/4lt9nlA.png)
 
 It asks for credentials which we weren't provided with, from this point we will now analyze the app to figure out how we can have access.
 
@@ -221,24 +221,24 @@ Service:
 
 We'll go more in-depth into each app component later, but for now we'll focus on the following activity: `com.insecureshop.ProductListActivity` which is the launcher activity of the application, or it's entry point.
 
-![](https://i.imgur.com/QbAcmkP.png)
+![](/images/writeups/QbAcmkP.png)
 
 Focus on the highlighted block of code on the onCreate method, it first checks if we already have populated the username value in the app's SharedPreferences file. If not, then it starts the LoginActivity which is what we see when we first start the app. 
 
 ## Vulnerability #1: Insecure Logging
 Reviewing the source code of `com.insecureshop.LoginActivity` shows that the username and password values that we provide are being leaked into logcat. 
 
-![](https://i.imgur.com/uF3yIu7.png)
+![](/images/writeups/uF3yIu7.png)
 
 This is only a low-severity vulnerability since only physical attackers could access the device logs. For the POC, we need to input some dummy values then grep logcat for the `userName` or `password` keys:
 
-![](https://i.imgur.com/ZbeI0cn.png)
+![](/images/writeups/ZbeI0cn.png)
 
 After the credentials have been logged, we enter the following if block on line 44 which first calls `Util.INSTANCE.verifyUsernamepassword()` with the credentials that we provide and uses the Boolean return value for the check. 
 
 ## Vulnerability #2: Hardcoded Credentials
 Navigating to the `util.Util` class, we can see that `verifyUserNamePassword` calls `getUserCreds` and compares the values that it returns with the values that we provide. 
-![](https://i.imgur.com/2GRr6DE.png)
+![](/images/writeups/2GRr6DE.png)
 
 The vulnerability here is that credentials are hardcoded into the `getUserCreds` method, thus giving us a valid account that we can use to login into the app. 
 
@@ -295,15 +295,15 @@ Prefs.xml  WebViewChromiumPrefs.xml
 ## Vulnerability #4: Lack of SSL Certificate Validation
 An often overlooked part when testing mobile apps is checking whether the app properly verifies the validity of a given SSL certificate.
 
-![](https://i.imgur.com/8kj89k7.png)
+![](/images/writeups/8kj89k7.png)
 
 When a certificate is invalid or malicious, it might allow an attacker to spoof a trusted entity by interfering in the communication path between the host and client. The software might connect to a malicious host while believing it is a trusted host, or the software might be deceived into accepting spoofed data that appears to originate from a trusted host. Such is the case of `com.insecureshop.WebViewActivity`
 
-![](https://i.imgur.com/95wzcG0.png)
+![](/images/writeups/95wzcG0.png)
 
 Checking the code above, we can see that WebViewActivity uses a `CustomWebViewClient()` object. Examining this class reveals the following block of code:
 
-![](https://i.imgur.com/p5NwG6h.png)
+![](/images/writeups/p5NwG6h.png)
 
 CustomWebViewClient overrides the `onReceivedSslError` method of its `WebViewClient` parent, but does not properly handle instances where the client actually receives invalid ssl certificates instead it ignores the error and continues to do `handler.proceed()`. 
 
@@ -334,12 +334,12 @@ Starting: Intent { act=android.intent.action.VIEW cat=[android.intent.category.B
 ```
 5. Try to search some stuff up and intercept the request. If you are able to intercept the https request for your search query, then you have verified that the app does not properly validate SSL certs.
 
-![](https://i.imgur.com/mWRz2kJ.png)
+![](/images/writeups/mWRz2kJ.png)
 
 ## Vulnerability #5: Insufficient URL Validation
 Building up on vulnerabilities related to `com.insecureshop.WebViewActivity`, we continue to review the logic on how it handles the urls sent via deeplink. Open up the activity on jadx-gui and focus on lines 31-45.
 
-![](https://i.imgur.com/mzYEWDB.png)
+![](/images/writeups/mzYEWDB.png)
 
 It gets the data from the intent and stores it into the uri variable, continues to check if the path of the uri is one of the following values: `/web` or `/webview`.
 
@@ -349,7 +349,7 @@ If we use the `/web` path, it takes the query parameter `?url` from the uri and 
 
 Now let's focus on the else if block when the path supplied in a deeplink is `/webview`. Similar to the previous vulnerability, it retrieves data from the intent -> gets the `?url` query parameter. 
 
-![](https://i.imgur.com/ans16hC.png)
+![](/images/writeups/ans16hC.png)
 
 However, there is an additional step to check if the url we retrieved endswith the string `insecureshopapp.com`. This may be a mechanism implemented by developers to only allow opening urls that they own. However, this is vulnerable since we can easily bypass the check:
 
@@ -384,7 +384,7 @@ aws cognito-identity get-id --identity-pool-id us-east-1:7e9426f7-42af-4717-8689
 aws cognito-identity get-credentials-for-identity --identity-id <identity-id-from-previous-command> --region us-east-1
 ```
 
-![](https://i.imgur.com/kiciz8p.png)
+![](/images/writeups/kiciz8p.png)
 
 Afterwhich, we'll use the following script (https://github.com/andresriancho/enumerate-iam) to enumerate permissions with the credentials that we have.
 
@@ -392,11 +392,11 @@ Afterwhich, we'll use the following script (https://github.com/andresriancho/enu
 python3 enumerate-iam.py --access-key <ACCESS-KEY-ID> --secret-key <SECRET-KEY-ID> --session-token <SESSION-TOKEN-VALUE>
 ```
 
-![](https://i.imgur.com/NwQExl7.png)
+![](/images/writeups/NwQExl7.png)
 
 An interesting permission that we have is that we can list the s3 buckets. For it to work, we need to configure our credentials (I'm using new creds here, I may have messed something up earlier):
 
-![](https://i.imgur.com/VWlDPa3.png)
+![](/images/writeups/VWlDPa3.png)
 
 We see two buckets, now let's see what they contain:
 

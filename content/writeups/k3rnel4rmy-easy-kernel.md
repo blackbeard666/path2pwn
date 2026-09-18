@@ -13,7 +13,7 @@ draft: false
 This writeup will cover my first foray into linux kernel exploitation. Disclaimer, I just started learning kernel pwn this month, so some information here might be incomplete. I plan to improve it after I learn a little more about the kernel. 
 
 ### Challenge Description
-![](https://i.imgur.com/om3Jph8.png)
+![](/images/writeups/om3Jph8.png)
 
 Since the CTF was held and aimed for beginner-intermediate players, it is a safe assumption that this is an easy and introductory kernel pwn challenge. We are given the remote server details + challenge files in `easy_kernel.tar.gz`
 
@@ -93,7 +93,7 @@ A brief description of the kernel mitigations that are present for this challeng
 - `KASLR`: similar to userspace ASLR, it randomizes the base address where the kernel is loaded each time the system is booted.
 - `KPTI`: kernel-page table isolation works by better isolating user space and kernel space memory. the qemu launch script doesn't explicitly mention kpti but according to the challenge author, newer kernel versions have it by default:
 
-![](https://i.imgur.com/BXHAqHg.png)
+![](/images/writeups/BXHAqHg.png)
 
 ### Modifying the Environment
 
@@ -127,7 +127,7 @@ Kernel modules are very synonymous to userspace libraries like `libc.so.6`. Modu
 For a better reading, I suggest: https://blog.sourcerer.io/writing-a-simple-linux-kernel-module-d9dc3762c234
 
 Like what we would normally do with an ELF binary, we can begin by analyzing the module with GHIDRA. Here is the function listing:
-![](https://i.imgur.com/kIDVGwG.png)
+![](/images/writeups/kIDVGwG.png)
 
 `init_func` and `exit_func` can be seen as the entry and exit points for the module, respectively. 
 
@@ -202,7 +202,7 @@ The `sread` functionality simply prints out the string "Welcome to this kernel p
 
 An important thing to note is that not only do we control the buffer address but also how many bytes we should read. Since we can control `bytes_to_read` this means that we can read arbitrary values from the kernel stack, thus leading to memory leaks allowing us to bypass KASLR. 
 
-![](https://i.imgur.com/xxa61rl.png)
+![](/images/writeups/xxa61rl.png)
 
 This is what the stack looks like before the call to `copy_user_generic_unrolled`, we can see the welcome string, some kernel address offsets and the kernel stack cookie. We will be retrieving these values later on.
 
@@ -304,13 +304,13 @@ void main() {
 	for (int i = 0; i < 0x100; i++) printf("%d | %lx\n", i, leakbuf[i]);
 ```
 
-![](https://i.imgur.com/QHYbR4Z.png)
+![](/images/writeups/QHYbR4Z.png)
 
 we successfully read 256 bytes from the device, all which include important kernel addresses and cookie values. After a while of figuring out which addresses we can reliably use, I settled for the ones at indexes 14 and 18. Since kaslr was off while debugging, I calculated the kernel base address offset through the following process:
 
-![](https://i.imgur.com/IS1WrZD.png)
+![](/images/writeups/IS1WrZD.png)
 
-![](https://i.imgur.com/NQ6Lkw3.png)
+![](/images/writeups/NQ6Lkw3.png)
 
 
 
@@ -348,12 +348,12 @@ void main() {
 
 What it simply does is to retrieve values from the leak and calculate the base address for the kernel. Afterwhich, we send an `ioctl` call to overwrite maxsize, allowing us to perform a buffer overflow when we `write` to the device. As we can see, we have triggered a kernel panic since we have overwritten the kernel stack cookie.
 
-![](https://i.imgur.com/CR7qWjo.png)
+![](/images/writeups/CR7qWjo.png)
 
 ### Preserving the Stack Cookie + taking control
 
 When disassembling the `swrite` function, we can see that it loads the cookie into the stack at [rsp + 0x80]:
-![](https://i.imgur.com/HdkAZPH.png)
+![](/images/writeups/HdkAZPH.png)
 
 In theory, we can start overwriting the cookie at stack offset 16 (0x80/8). To test the idea, I wrote the following code:
 
@@ -366,14 +366,14 @@ In theory, we can start overwriting the cookie at stack offset 16 (0x80/8). To t
 ```
 
 Before the call to `copy_user_generic_unrolled`, the stack looks like this:
-![](https://i.imgur.com/KQO9fpP.png)
+![](/images/writeups/KQO9fpP.png)
 
 After our payload has been written:
-![](https://i.imgur.com/7xO6F8x.png)
+![](/images/writeups/7xO6F8x.png)
 
 We seem to be correct. Notice that what follows after the cookie is some value (0x80) then the return address `0xffffffff8123e2e7` which we can see in the following screenshot:
 
-![](https://i.imgur.com/btmCIhn.png)
+![](/images/writeups/btmCIhn.png)
 
 I made a small adjustment to my payload, which just preserves the kernel stack cookie, the value next to it with a dummy, then overwriting the return address:
 
@@ -389,7 +389,7 @@ I made a small adjustment to my payload, which just preserves the kernel stack c
 
 Running the exploit causes a `general protection fault in user access. non-canonical address` since we have replaced RIP with an invalid address:
 
-![](https://i.imgur.com/0ftF2wY.png)
+![](/images/writeups/0ftF2wY.png)
 
 Now that we can control the kernel instruction pointer, our next phase should be escalating privileges. 
 
@@ -451,7 +451,7 @@ The cred struct contains the eUID of the task. If we were somehow able to overwr
 - commit_creds: commits a new credential set to the current process.
 
 Since these functions are part of the kernel, we can include them into the list of addresses that we want to leak:
-![](https://i.imgur.com/3cDE3jS.png)
+![](/images/writeups/3cDE3jS.png)
 
 The next step of our payload will be to construct a rop chain that basically calls `commit_creds(prepare_kernel_cred(0))`
 
@@ -519,7 +519,7 @@ ret; // returns to call commit_creds
 After that bit, we proceed to the next rop gadget that calls `swapgs` which swaps the `GS` register from kernel-mode to user-mode. Then we continue to call `iretq` which allows us to return to user-mode. 
 
 The problem with this approach is that I wasn't able to return to userland properly. This becomes clear after we return to a userland function, we still see some kernel pointers/addresses in the stack:
-![](https://i.imgur.com/8WJ6iV6.png)
+![](/images/writeups/8WJ6iV6.png)
 
 The reason is because of KPTI. Even though we have already returned the execution to user-mode, the page tables that it is using is still the kernel’s, with all the pages in userland marked as non-executable.
 
@@ -529,7 +529,7 @@ To bypass KPTI, I used a method called KPTI trampoline. This method is based on 
 
 Our kpti_trampoline resides in the function `swapgs_restore_regs_and_return_to_usermode()`. 
 
-![](https://i.imgur.com/ChnilVi.png)
+![](/images/writeups/ChnilVi.png)
 
 ### Final Payload
 ```c
@@ -626,7 +626,7 @@ void main() {
 }
 ```
 
-![](https://i.imgur.com/0o7mu1C.png)
+![](/images/writeups/0o7mu1C.png)
 
 ### My Takeaways
 

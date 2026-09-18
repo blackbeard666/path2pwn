@@ -13,12 +13,12 @@ draft: false
 HTB CTF challs are sometimes reused
 
 ## Injection, pwn 350
-![](https://i.imgur.com/a0oX9sa.png)
+![](/images/writeups/a0oX9sa.png)
 
 quick file recon reveals that we have a 64-bit pwnable challenge which is not stripped -> making it easier to reverse engineer. doing `checksec` shows that most protections are disabled and that we are dealing with a [Position Independent Executable (PIE)](https://github.com/ir0nstone/pwn-notes/blob/master/types/stack/pie/README.md) binary. 
 
 ### Reverse Engineering
-![](https://i.imgur.com/r65c3dA.png)
+![](/images/writeups/r65c3dA.png)
 
 Opening the binary in GHIDRA, we only have the main function to analyze. We can ignore `setup` since it only deals with the normal buffering issues. First, the program asks for an integer input in which `1` is the correct answer to take. 
 
@@ -63,7 +63,7 @@ payload += b'AAAABBBB'
 p.sendline(payload)
 p.interactive()
 ```
-![](https://i.imgur.com/NGRjMSQ.png)
+![](/images/writeups/NGRjMSQ.png)
 
 Now we can proceed with our plan. Since we have a stack address from the leak + the stack is marked as executable (NX is disabled), we can place shellcode onto the stack then return to it. I simply used `shellcraft.sh()` from pwntools which automates creating the normal execve('/bin/sh') shellcode. 
 
@@ -76,19 +76,19 @@ p.interactive()
 ```
 
 We get a neat shell:
-![](https://i.imgur.com/iHgAbcu.png)
+![](/images/writeups/iHgAbcu.png)
 
 -------------------------------------------------------
 
 ## Library, pwn 350
 
 We were given a zip file which contained the challenge binary and its corresponding libc. Doing the usual recon yields the ff:
-![](https://i.imgur.com/8K1X4cI.png)
+![](/images/writeups/8K1X4cI.png)
 
 x86_64 binary which is not stripped, has NX + full RELRO but `NO CANARY` and NO `PIE` which means that the program has no protections for stack buffer overflows and addresses remain static. Grepping for the libc version reveals that it is 2.27, the libc for ubuntu 18.04 iirc. 
 
 ### Reverse Engineering
-![](https://i.imgur.com/SIpuM8G.png)
+![](/images/writeups/SIpuM8G.png)
 
 The bug is clear, the program accepts more input than the stack buffer can handle -> thus leading to another buffer overflow. Since there are no backdoor functions (hidden functions that give us a shell or the flag), our goal is to get RCE/shell on the remote server. For this we need a few things:
 
@@ -97,7 +97,7 @@ The bug is clear, the program accepts more input than the stack buffer can handl
 
 ### Crafting the payload
 For the read primitive, we can simply reuse some functions in the binary to return the values of some GOT addresses (which hold pointers to libc). What I mean by this is: 
-![](https://i.imgur.com/ZC5wf3S.png)
+![](/images/writeups/ZC5wf3S.png)
 
 We will be using `puts` as our read primitive. `puts` accepts string pointers as its arguments and returns the contents of wherever that pointer points to. So if we do `puts(0x600fc8)` it will dereference the pointer which will lead to `puts(0x7fd1cca7baa0)` thus allowing us to have a libc leak. 
 
@@ -109,7 +109,7 @@ libc.address = libc_leak - libc.sym.puts
 
 In order for us to perform this call, we need some gadgets for ROP. We can easily retrieve some by using `ROPgadget`.
 
-![](https://i.imgur.com/nFQFebH.png)
+![](/images/writeups/nFQFebH.png)
 
 We only need the `pop rdi ; ret` gadget because on x64 binaries, arguments to function calls are placed into registers. Thus if we want to call `puts(puts@GOT)` we need to place `puts@GOT` into the `rdi` register (`rdi` is the register for the first argument in a function call)
 
@@ -151,11 +151,11 @@ log.info(f"puts libc address leak: {hex(libc_leak)}")
 log.info(f"libc base address: {hex(libc.address)}")
 ```
 
-![](https://i.imgur.com/0c0FuWy.png)
+![](/images/writeups/0c0FuWy.png)
 
 It successfully retrieved libc addresses and returned to the main function. Now, the next step is to get a shell by calling `system("/bin/sh")`. My approach for this is to simply search for one shot RCE's in the libc using the tool [one_gadget](https://github.com/david942j/one_gadget)
 
-![](https://i.imgur.com/BPWikzF.png)
+![](/images/writeups/BPWikzF.png)
 
 we can do a trial and error on which gadget works, which for this challenge was the second option (0x4f432). The final stage payload is as follows:
 
@@ -175,28 +175,28 @@ We need to place the extra `ret` instruction to account for alignment issues whe
 -------------------------------------------------------
 
 ## Air Supplies, pwn 350
-![](https://i.imgur.com/DH1T3cb.png)
+![](/images/writeups/DH1T3cb.png)
 
 ### Reverse Engineering
-![](https://i.imgur.com/avhq7IA.png)
+![](/images/writeups/avhq7IA.png)
 
 first step of the program accepts either 1 or 2 as the input, which then gets handled by the `choice` function.
 
-![](https://i.imgur.com/SxonRam.png)
+![](/images/writeups/SxonRam.png)
 
 we can only proceed with the mission if we enter 1. 
 
-![](https://i.imgur.com/0wEE5Hw.png)
+![](/images/writeups/0wEE5Hw.png)
 
 On lines 22-23 and 27-28, we can see that the program asks us for additional input then casts them into `unsigned long`. The vulnerability lies on line 30, where we have a `write-what-where` primitive. Basically, the vuln in this program allows us to write anything into any arbitrary location that we provide. 
 
 The technique that I used here is overwriting the entry to `__do_global_dtors_aux`, which runs all the global destructors on exit from the program on systems where .fini_array is not available
 
-![](https://i.imgur.com/duvjMVN.png)
+![](/images/writeups/duvjMVN.png)
 
 Our plan then is to overwrite the destructor entry to point to the address of `_` which is a hidden, backdoor function that retrieves the flag for us:
 
-![](https://i.imgur.com/Ujy99YD.png)
+![](/images/writeups/Ujy99YD.png)
 
 ```python
 from pwn import *
@@ -227,26 +227,26 @@ p.sendlineafter(b'drop: ', str(binary.sym._).encode())
 p.interactive()
 ```
 
-![](https://i.imgur.com/8TOP7wt.png)
+![](/images/writeups/8TOP7wt.png)
 
 -------------------------------------------------------
 
 ## Access, reversing 325
 
 Running a file check returns the usual stuff:
-![](https://i.imgur.com/ygpppC2.png)
+![](/images/writeups/ygpppC2.png)
 
 Proceeding to decompile the binary with GHIDRA, we can see the following code:
 
-![](https://i.imgur.com/IPr4Nuk.png)
+![](/images/writeups/IPr4Nuk.png)
 
 It first checks if the ID that we provide is `31337`, then we get prompted for a pin. Our input is then processed by `checkpin()` which handles the PIN verification process. 
 
-![](https://i.imgur.com/Iv60sgW.png)
+![](/images/writeups/Iv60sgW.png)
 
 It simply runs a char-by-char comparison between our provided input and `&encrypted_flag` which are bytes xored with 0x20. We can easily recover these bytes: 
 
-![](https://i.imgur.com/HGekkOZ.png)
+![](/images/writeups/HGekkOZ.png)
 
 Then we can proceed to write a short python script to retrieve the flag:
 
@@ -255,7 +255,7 @@ pin = [0x4c,0x13,0x54,0x7f,0x4d,0x45,0x7f,0x11,0x4e,0x7f,0x4c,0x13,0x54,0x7f,0x4
 print(''.join([chr(x ^ 0x20) for x in pin]))
 ```
 
-![](https://i.imgur.com/Vb1dXEW.png)
+![](/images/writeups/Vb1dXEW.png)
 
 -------------------------------------------------------
 
@@ -331,7 +331,7 @@ We need to break this down line by line:
 ### Anti-Debug Bypass
 
 I opened up the binary in GDB, disassembled the main function and searched for the parts where we needed to bypass:
-![](https://i.imgur.com/X4YFSFy.png)
+![](/images/writeups/X4YFSFy.png)
 
 We need to place a breakpoint at `*main + 191` which is before `ptrace` gets called. Next, the unsatisfiable check happens at `*main + 241, *main + 248` -> we need to jump away from these parts such that we continue execution on `*main + 261` which should correspond to the `strcmp` call on line 38 of the decompiled code. 
 
@@ -344,18 +344,18 @@ pwndbg> r
 ```
 
 we should hit the breakpoint before ptrace:
-![](https://i.imgur.com/fpqF5qZ.png)
+![](/images/writeups/fpqF5qZ.png)
 
 the next thing we do is to jump into our second breakpoint and step into the next instructions until we reach the strcmp call:
-![](https://i.imgur.com/THmEXeP.png)
+![](/images/writeups/THmEXeP.png)
 
 the first argument, s1, is the secret_key that we need to match. Since I provided a dummy input of `a`, we should change the value of the `rsi` register which holds the value of the second input. This can be done with: `set $rsi=$rdi`
 
-![](https://i.imgur.com/I9bSgDj.png)
+![](/images/writeups/I9bSgDj.png)
 
 Now both strings match. We then continue stepping into the instructions until the call to `decrypt`. 
 
-![](https://i.imgur.com/iLW0Ku5.png)
+![](/images/writeups/iLW0Ku5.png)
 
 Again, we need to change the value of the `rdi` register, since this should contain the secret key to decrypt the flag. We simply substitute it with the address of the secret key (which we know from the previous strcmp call):
 
@@ -363,11 +363,11 @@ Again, we need to change the value of the `rdi` register, since this should cont
 pwndbg> set $rdi = (char *) 0x555555400ec8
 ```
 
-![](https://i.imgur.com/VFwh8Ec.png)
+![](/images/writeups/VFwh8Ec.png)
 
 Now that `rdi` contains the secret key, we continue until the next call to strcmp, which should now hold the value of the decrypted flag:
 
-![](https://i.imgur.com/qSyrxnS.png)
+![](/images/writeups/qSyrxnS.png)
 
 -------------------------------------------------------
 
@@ -375,7 +375,7 @@ Now that `rdi` contains the secret key, we continue until the next call to strcm
 
 We were given a zip file, when unzipped returned a directory with the name: `3x6l3w88.default-release`. Given the naming convention and the files stored in the directory, I knew that I was dealing with a [firefox profile](https://support.mozilla.org/en-US/kb/profiles-where-firefox-stores-user-data). 
 
-![](https://i.imgur.com/JlgAwHe.png)
+![](/images/writeups/JlgAwHe.png)
 
 I immediately recognized it as there was a tryhackme room (Glitch) that I solved which used a firefox profile as a privilege escalation vector. Initially, I planned to use [firefox-decrypt](https://github.com/unode/firefox_decrypt), but since the `profile.ini` file is nowhere to be found, I looked for other possible approaches. 
 
@@ -511,7 +511,7 @@ https://trackthis.link/
 ```
 
 We take note of the FTP credentials. While it may seem interesting, there is no way we can access those endpoints. What we can focus on instead are the pastebin links, which seems to have a password protected file:
-![](https://i.imgur.com/SefI2wA.png)
+![](/images/writeups/SefI2wA.png)
 
 We can further examine the firefox profile for stored passwords, more specifically on autofill forms:
 
@@ -552,4 +552,4 @@ username=rick.a
 
 I tried the retrieved credentials: `PostForm[password]=r0llr1ck0202!` on the protected pastebin, and got the flag from there.
 
-![](https://i.imgur.com/hdRfQT5.png)
+![](/images/writeups/hdRfQT5.png)
