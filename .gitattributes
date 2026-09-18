@@ -1,0 +1,27 @@
+# Line endings, pinned deliberately.
+#
+# core.autocrlf is true in this clone, so a file authored with CRLF can be
+# committed with CRLF. tools/pre-commit and tools/pre-push are `#!/bin/sh`
+# scripts, and a CRLF shebang fails on Linux and macOS with
+# `bad interpreter: /bin/sh^M` — which would silently disable the guard that
+# stops locked-post plaintext reaching this PUBLIC repo on any non-Windows
+# clone. The blobs are LF today; this keeps them that way.
+#
+# (A push review flagged those blobs as already CRLF. They were not — that was
+# a `grep -c $'\r'` artifact under MSYS, which counts matching lines oddly and
+# reported every line as a hit. Measured on raw bytes, all three are pure LF.
+# Use python or `od -c` on `git cat-file blob`, never a shell pipe, to check.)
+* text=auto
+
+tools/pre-commit text eol=lf
+tools/pre-push   text eol=lf
+tools/vault.js   text eol=lf
+
+# Binary: never transform these.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.pdf  binary
+*.bin  binary
