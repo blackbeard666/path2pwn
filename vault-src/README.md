@@ -28,6 +28,16 @@ filter to remember and no way to half-forget one.
 
 ## Workflow
 
+**Once per clone, before anything else.** The commit guard is repo-local config
+and does not come with the repository, so a fresh checkout has no protection at
+all. `audit` fails until you do this:
+
+```bash
+git config core.hooksPath tools
+```
+
+Then, per post:
+
 ```bash
 node tools/vault.js new my-slug --section writeups   # scaffold + generate a password
 #   ...write the post...
@@ -35,6 +45,10 @@ node tools/vault.js build                            # encrypt, regenerate the s
 rm -rf public/ && hugo server                        # preview (public/ is stale and lies)
 node tools/vault.js audit                            # prove nothing leaked
 ```
+
+`build` works on a freshly scaffolded post with no edits at all, so you can
+check the pipeline before writing anything. `status` lists what is sealed and
+what is overdue for rotation; `rotate <slug>` reissues a password.
 
 Images: drop them in `vault-src/images/` and reference them as
 `![alt](/vault-img/file.png)` — that exact prefix, no other form. They are

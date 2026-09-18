@@ -250,10 +250,15 @@ function rewriteImages(html, slug) {
     return tag.replace(src[0], ' data-vault-img="' + id + '"');
   });
 
-  if (out.indexOf(IMG_PREFIX) !== -1) {
-    die('a reference to ' + IMG_PREFIX + ' survived rewriting in "' + slug + '".\n' +
-        '  That would fetch a plaintext image from a public path. Reference images\n' +
-        '  as ![alt](' + IMG_PREFIX + 'file.png) and nothing else.');
+  /* Only an ATTRIBUTE VALUE counts as a survival. A blanket indexOf also fired
+     on the prefix appearing as TEXT — in a code span, or in prose — which made
+     the scaffold's own `![alt](/vault-img/file.png)` example unbuildable, and
+     would block any writeup that documents this feature. What actually matters
+     is a reference the browser would FETCH from a public path. */
+  const survived = new RegExp('(?:src|href|srcset|poster|data-[\w-]+)\s*=\s*["\'][^"\']*' + IMG_PREFIX, 'i').exec(out);
+  if (survived) {
+    die('a ' + IMG_PREFIX + ' reference survived rewriting in "' + slug + '":' + '\n' +
+        '  ' + survived[0].slice(0, 90));
   }
   return { html: out, used: used };
 }
@@ -368,8 +373,14 @@ function cmdNew(slug, section) {
     '',
     '## Background',
     '',
-    'Everything below the front matter is encrypted. Images go in vault-src/images/',
-    'and are referenced as ![alt](' + IMG_PREFIX + 'file.png) — that exact prefix.',
+    'Everything below the front matter is encrypted. Images go in',
+    'vault-src/images/ and are referenced with that exact prefix:',
+    '',
+    /* BACKTICKED deliberately. Written bare, this example is a real markdown
+       image reference, so the very first `build` after a `new` died with
+       "missing image vault-src/images/file.png" — the scaffold shipped a post
+       that could not build until the author deleted the instructions. */
+    '    `![alt](' + IMG_PREFIX + 'file.png)`',
     '',
   ].join('\n'));
 
@@ -689,8 +700,16 @@ function cmdAudit() {
       const m = /^---[\s\S]*?\n---\n?([\s\S]*)$/.exec(raw);
       for (const needle of historyNeedles(m ? m[1] : raw)) {
         searched++;
+        /* Exclude tools/ and the vault-src README. The `new` scaffold's own
+           boilerplate lives in tools/vault.js, so an unedited scaffolded post
+           matched the tool's SOURCE and reported "PLAINTEXT IN GIT HISTORY" on
+           a completely clean repo. Neither path can hold post content: one is
+           this program, the other is documentation that is committed on
+           purpose. */
         const hit = spawnSync('git', ['-C', ROOT, 'grep', '-F', '-I', '-l', '-e', needle]
-          .concat(revs), { encoding: 'utf8' });
+          .concat(revs)
+          .concat(['--', ':(exclude)tools/', ':(exclude)vault-src/README.md']),
+          { encoding: 'utf8' });
         if (hit.status === 0 && (hit.stdout || '').trim()) {
           problems.push('PLAINTEXT IN GIT HISTORY (' + slug + '):\n      ' +
             (hit.stdout || '').trim().split('\n').slice(0, 5).join('\n      '));
