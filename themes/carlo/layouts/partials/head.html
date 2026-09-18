@@ -1,5 +1,52 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+{{- /* CONTENT SECURITY POLICY.
+
+       Must come BEFORE the theme guard below, because a meta CSP only governs
+       what follows it.
+
+       Why it is here: a locked post injects its decrypted body with innerHTML.
+       That content is authenticated under the content key, so nobody without a
+       password can reach it — but anyone WHO HOLDS a password holds the same
+       key, so the tag proves "made by a key holder", not "made by Carlo". This
+       caps that, and any future injection anywhere on the site, at content
+       forgery rather than code execution. See CLAUDE.md -> Locked posts.
+
+       TWO script hashes, both for the theme guard below, because
+       `hugo --minify` REWRITES it: the source is `if(x)y` and the minified
+       output is `x&&(y)`, which are different bytes and therefore different
+       hashes. Listing one would have worked in production and silently broken
+       the guard under `hugo server`, or the reverse.
+       scratchpad/csp-check.js recomputes both from the served page and fails if
+       either drifts — do not hand-edit these.
+
+       'unsafe-inline' is in style-src ONLY, and it is load-bearing: goldmark
+       runs with unsafe=true and four writeups carry style="text-align:center"
+       attributes, which are inline styles. It is deliberately NOT in script-src,
+       where it would re-permit the `onerror=` handlers this exists to stop.
+
+       blob: in img-src is what lets a decrypted screenshot render at all.
+
+       There is NO external image host here, deliberately. Six writeups used to
+       hotlink 94 screenshots from i.imgur.com, which needed an allowance in this
+       directive; those are now served from static/images/writeups/ like every
+       other image, so the site makes no third-party image request at all. If a
+       CSP image violation ever appears, something has reintroduced a hotlink —
+       fix the post, don't widen this.
+       frame-ancestors is omitted: it is ignored in a meta tag (it needs a real
+       header, which GitHub Pages cannot set). */ -}}
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'sha256-d+oCxD1FUaX3d3IhV9W4V80AWdwGj3DvSqjdv0plO8Y=' 'sha256-QVcX6pWAjVGKXEumz5YKTBJtTYCO5T02JvsRPe1CtHs=';
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src 'self' https://fonts.gstatic.com;
+  img-src 'self' blob:;
+  connect-src 'self';
+  frame-src https://www.youtube.com https://www.youtube-nocookie.com;
+  object-src 'none';
+  base-uri 'none';
+  form-action 'self'" />
 {{/* The CVE id is appended here and nowhere else. Post titles describe the bug
      rather than restating the id — the id and vendor are already in the meta row,
      and six titles all starting "CVE-20…" made the archive unscannable. But the id
