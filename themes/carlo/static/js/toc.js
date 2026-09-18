@@ -1,4 +1,9 @@
-(function () {
+/* Runs on load, and AGAIN when a locked post is unlocked — a locked page ships
+   an empty .post-body and an empty .toc, so at parse time there is nothing to
+   observe and nothing to highlight. static/js/vault.js fires `vault:unlocked`
+   once it has injected the decrypted article and its table of contents.
+   Re-running is safe: the previous observer was watching an empty set. */
+function tocSpy() {
   var headings = document.querySelectorAll('.post-body h2, .post-body h3, .post-body h4');
   var tocLinks = document.querySelectorAll('.toc nav a');
 
@@ -22,4 +27,7 @@
   headings.forEach(function (h) {
     observer.observe(h);
   });
-})();
+}
+
+tocSpy();
+document.addEventListener('vault:unlocked', tocSpy);

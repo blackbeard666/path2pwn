@@ -1,0 +1,94 @@
+#!/bin/sh
+# ---------------------------------------------------------------------------
+# Blocks locked-post plaintext and passwords from entering a commit.
+#
+# .gitignore is a PREFERENCE: `git add -f` walks straight through it, and so
+# does any path someone un-ignored. This is the guard that holds.
+#
+#     git config core.hooksPath tools        # install once, per clone
+#
+# core.hooksPath is repo-local config and does NOT survive a clone, so a fresh
+# checkout has no guard at all. `node tools/vault.js audit` checks that it is
+# installed and fails if it is not.
+#
+# tools/pre-push runs the same check over the outgoing range, because
+# --no-verify, rebase, am and merge all bypass pre-commit — and on a public
+# repo the push is the event that cannot be taken back.
+# ---------------------------------------------------------------------------
+set -u
+
+list=$(mktemp)
+trap 'rm -f "$list"' EXIT
+
+# -z gives NUL-delimited paths so a filename containing a space stays ONE item,
+# and it goes to a FILE rather than a variable because command substitution
+# strips NUL bytes. The previous `for f in $(...)` word-split on whitespace:
+# "content/writeups/my post.md" iterated as two nonexistent paths, `|| true`
+# swallowed both errors, and the hook exited 0 — failing OPEN, silently, on
+# precisely the case it exists to catch.
+# core.quotepath=false stops git returning "content/\303\251.md" for non-ASCII.
+git -c core.quotepath=false diff --cached -z --name-only --diff-filter=ACMR > "$list" 2>/dev/null
+
+if [ ! -s "$list" ]; then
+  exit 0
+fi
+
+bad=''
+secrets=''
+withbody=''
+
+# Hugo renders more than .md; a locked stub written as .html was invisible before.
+content_re='^content/.*\.\(md\|markdown\|html\|htm\|org\|rst\|adoc\|asciidoc\|pandoc\)$'
+
+while IFS= read -r -d '' f; do
+  [ -n "$f" ] || continue
+
+  case "$f" in
+    vault-src/README.md) : ;;
+    vault-src/*)         bad="$bad $f" ;;
+  esac
+  case "$f" in
+    *vault-secrets.json) secrets="$secrets $f" ;;
+  esac
+
+  printf '%s\n' "$f" | grep -q "$content_re" || continue
+
+  # Judge the INDEX version, not the worktree, so `git add -p` is assessed on
+  # what is actually being committed.
+  blob=$(git show ":$f" 2>/dev/null || true)
+  [ -n "$blob" ] || continue
+
+  # Scope the `locked` test to the FRONT MATTER and accept every truthy YAML
+  # spelling. A literal "locked: true" match against the whole file missed
+  # `locked: "true"`, `locked:  true` and `locked: True` — and it blocked an
+  # ordinary post that merely quoted "locked: true" in its prose, which on this
+  # site is a writeup about this very feature.
+  fm=$(printf '%s\n' "$blob" | awk '
+    /^---[[:space:]]*\r?$/ { n++; if (n >= 2) exit; next }
+    n == 1 { print }')
+  printf '%s\n' "$fm" \
+    | grep -qiE '^locked[[:space:]]*:[[:space:]]*"?(true|yes|on|1)"?[[:space:]]*\r?$' \
+    || continue
+
+  body=$(printf '%s\n' "$blob" | awk '
+    /^---[[:space:]]*\r?$/ { n++; next }
+    n >= 2 { print }' | tr -d '[:space:]')
+  [ -n "$body" ] && withbody="$withbody $f"
+done < "$list"
+
+if [ -n "$bad" ] || [ -n "$secrets" ] || [ -n "$withbody" ]; then
+  echo ""
+  echo "  BLOCKED — locked-post plaintext would be published."
+  echo ""
+  [ -n "$bad" ]      && echo "    plaintext source staged:$bad"
+  [ -n "$secrets" ]  && echo "    password file staged:$secrets"
+  [ -n "$withbody" ] && echo "    locked stub with a non-empty body:$withbody"
+  echo ""
+  echo "  Only ciphertext under static/vault/ is ever committed. Unstage with:"
+  echo "    git restore --staged <path>"
+  echo ""
+  echo "  This repo is PUBLIC — a commit here cannot be taken back."
+  echo ""
+  exit 1
+fi
+exit 0

@@ -17,7 +17,7 @@
       "url" .RelPermalink
       "type" .Type
       "date" (.Date.Format "2006-01-02")
-      "readingTime" .ReadingTime
+      "readingTime" (or .Params.readingTime .ReadingTime)
       "cve" (.Params.cve | default "")
       "severity" (.Params.severity | default "")
       "status" (.Params.status | default "")
@@ -27,6 +27,7 @@
       "category" (.Params.category | default "")
       "tags" (.Params.tags | default (slice))
       "summary" (.Params.summary | default "")
+      "locked" (.Params.locked | default false)
       "body" (.Plain | truncate 1200)
   ) -}}
 {{- end -}}

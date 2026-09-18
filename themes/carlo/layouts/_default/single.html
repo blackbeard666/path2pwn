@@ -5,6 +5,20 @@
        A "there are five more" block at the end of a technical write-up reads as
        a house ad. Don't add one back. */ -}}
 
+{{- /* SEATBELT. A locked post's body must be empty — the prose lives encrypted
+       in static/vault/, and the committed stub carries front matter only. If a
+       body ever appears here, the plaintext is about to be published in the
+       clear right next to its own ciphertext. errorf fails `hugo --minify`, so
+       this stops CI too, not just a local preview. */ -}}
+{{- /* .RawContent, NOT .WordCount. WordCount is 0 for content .Plain strips —
+       an HTML comment, an image-only body, a bare shortcode — so those slipped
+       through, and a stub with no `summary:` then leaked them into three RSS
+       feeds via .Summary. .RawContent is the source text and catches all of it. */ -}}
+{{- $raw := trim (chomp .RawContent) " " -}}
+{{- if and .Params.locked (gt (len $raw) 0) -}}
+  {{- errorf "locked post %q has a non-empty body (%d bytes) — its plaintext would be published. The body belongs in vault-src/; run `node tools/vault.js build` to regenerate the stub." .File.Path (len $raw) -}}
+{{- end -}}
+
 <header class="post-head">
   <nav class="crumbs" aria-label="Breadcrumb">
     <a href="{{ "/" | relURL }}">all</a>
@@ -31,7 +45,13 @@
     {{ with .Params.vendor }}<span>{{ . }}</span>{{ end }}
     {{ with .Params.affected }}<span>{{ . }}</span>{{ end }}
     <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
-    <span>{{ .ReadingTime }} min</span>
+    {{- /* A locked post's body is empty here, so .ReadingTime is 0 and would
+           render "0 min". tools/vault.js writes the real figure into the stub's
+           front matter from the plaintext. Mirrored in partials/post-row.html
+           and layouts/index.json — filter.js already guards on a falsy value,
+           so leaving this unguarded made the two row renderers disagree. */ -}}
+    <span>{{ or .Params.readingTime .ReadingTime }} min</span>
+    {{ if .Params.locked }}<span class="badge-lock">locked</span>{{ end }}
     {{ if .Params.cve }}{{ with .Params.status }}<span class="row-status">{{ . }} upstream</span>{{ end }}{{ end }}
   </div>
 </header>
@@ -40,13 +60,29 @@
   {{- /* .toc wrapper + raw .TableOfContents inside is what static/js/toc.js
          keys off (`.toc nav a`). Keep both if you touch this. */ -}}
   <aside class="toc-side">
-    {{ if .TableOfContents }}
-    <details class="toc-details" open>
-      <summary class="toc-label">On this page</summary>
-      <div class="toc" data-toc>
-        {{ .TableOfContents }}
-      </div>
-    </details>
+    {{ if .Params.locked }}
+      {{- /* An empty scaffold for static/js/vault.js to fill after unlock. The
+             TOC is rendered from the plaintext and travels inside the encrypted
+             payload, so there is nothing to put here until a password lands. */ -}}
+      <details class="toc-details" open hidden data-toc-slot>
+        <summary class="toc-label">On this page</summary>
+        <div class="toc" data-toc></div>
+      </details>
+    {{ else }}
+      {{- /* NOT `{{ if .TableOfContents }}`. That is ALWAYS true: Hugo emits a
+             bare <nav id="TableOfContents"></nav> for a page with no headings
+             (the only early return in ToHTML is on a nil *Fragments), so the
+             guard opened an empty "On this page" box. .Fragments.Headings is
+             the real test — nested `with` because .Fragments itself can be
+             nil, and indexing a nil pointer is a template error. */ -}}
+      {{ with .Fragments }}{{ with .Headings }}
+      <details class="toc-details" open>
+        <summary class="toc-label">On this page</summary>
+        <div class="toc" data-toc>
+          {{ $.TableOfContents }}
+        </div>
+      </details>
+      {{ end }}{{ end }}
     {{ end }}
 
     {{ if or .Params.nvd .Params.advisory .Params.patch }}
@@ -64,8 +100,8 @@
   <article class="post-content">
     {{ with .Params.summary }}<p class="post-lede">{{ . }}</p>{{ end }}
 
-    <div class="post-body">
-      {{ .Content }}
+    <div class="post-body"{{ if .Params.locked }} data-vault="{{ .File.ContentBaseName }}"{{ end }}>
+      {{ if .Params.locked }}{{ partial "vault-gate.html" . }}{{ else }}{{ .Content }}{{ end }}
     </div>
 
     {{ with .Params.tags }}

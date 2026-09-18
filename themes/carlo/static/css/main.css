@@ -119,6 +119,21 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
 .row-status { color: var(--g); }
 .row-source { color: var(--n-600); }
 
+/* A locked post. NEUTRAL OUTLINE, deliberately not red: on this site red means
+   OFFENSE — what you did — not "forbidden". Reusing it for a lock would put a
+   third meaning on the page's loudest colour. Same shape as .badge-cat, one
+   rung dimmer, because it labels the row rather than classifying it. */
+.badge-lock {
+  padding: 3px 8px;
+  border: var(--hairline) solid var(--n-700);
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--n-400);
+}
+
 /* ---- HEADER / NAV ---- */
 
 .site-header {
@@ -1156,6 +1171,126 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
    RESPONSIVE — two steps, matching the landing site.
    ============================================================ */
 
+/* ---- POST: VAULT GATE ------------------------------------------------
+   The unlock form on a locked post, rendered inside .post-body and replaced
+   wholesale by the decrypted article. No new colour: --surface panel, --n-800
+   hairline, and the SAME green-fill treatment as .filter-chip.is-on, whose
+   --g-900 is the token for text on a green fill in both themes.
+   -------------------------------------------------------------------- */
+
+.vault-gate .kicker {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1.4;
+  text-transform: uppercase;
+  color: var(--g);
+}
+
+.vault-gate {
+  max-width: var(--measure);
+  margin-top: 26px;
+  padding: 26px;
+  background: var(--surface);
+  border: var(--hairline) solid var(--n-800);
+}
+/* Every text rule below is scoped under .post-body on purpose. The gate renders
+   INSIDE .post-body, where `.post-body p` (0,1,1) beats a bare `.vault-note`
+   (0,1,0) — so the kicker painted 16.5px grey instead of 11.5px green, the error
+   painted grey instead of red, and the fine print painted at body size. Three of
+   the four text elements silently rendered as ordinary prose. */
+.post-body .vault-note {
+  margin-top: 12px;
+  font-size: 16.5px;
+  line-height: 1.75;
+  color: var(--n-400);
+}
+
+.vault-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 22px;
+}
+.vault-gate .vault-label {
+  flex: 1 0 100%;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--n-400);
+}
+
+/* The ring belongs on the box, not the bare input — same as .filter-search. */
+.vault-input {
+  display: flex;
+  align-items: center;
+  flex: 1 1 240px;
+  min-width: 0;
+  padding: 8px 12px;
+  background: var(--ground);
+  border: var(--rule) solid var(--n-700);
+}
+.vault-input:focus-within { border-color: var(--g); }
+.vault-input input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  letter-spacing: 0.04em;
+}
+.vault-input input::placeholder { color: var(--n-600); }
+.vault-input input:focus-visible { outline: 0; }
+
+.vault-submit {
+  flex: 0 0 auto;
+  padding: 8px 20px;
+  background: var(--g);
+  border: var(--rule) solid var(--g);
+  border-radius: var(--radius);
+  color: var(--g-900);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+.vault-submit:hover { background: var(--g-400); border-color: var(--g-400); }
+/* Key derivation is deliberately slow (600k PBKDF2 rounds), so the button is
+   disabled for a second or two. Say so rather than looking broken. */
+.vault-submit[disabled] { opacity: 0.6; cursor: progress; }
+
+/* --r-400 is the one red here, and it is TEXT, never a fill — a failed password
+   is an error message, not the page's offense accent. */
+.post-body .vault-error {
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--r-400);
+}
+.post-body .vault-foot {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: var(--hairline) solid var(--n-800);
+  font-size: 13.5px;
+  line-height: 1.7;
+  /* --n-500, not --n-600: the ramp was tuned against --ground, where --n-600 is
+     exactly 4.50:1. On the gate's --surface panel it drops to 4.14:1 and fails
+     AA as explanatory prose. */
+  color: var(--n-500);
+}
+.post-body .vault-img-fail {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--n-600);
+}
+
 @media (max-width: 1100px) {
   .index-head h1 { font-size: 46px; }
   .post-head h1 { font-size: 40px; }
@@ -1192,6 +1327,9 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
 }
 
 @media (max-width: 720px) {
+  .vault-gate { padding: 18px; }
+  .vault-submit { flex: 1 0 100%; }
+
   :root { --gutter: 22px; }
 
   .site-nav { flex-wrap: wrap; }

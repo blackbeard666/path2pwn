@@ -1,0 +1,62 @@
+#!/bin/sh
+# ---------------------------------------------------------------------------
+# The check that actually matters on a PUBLIC repo.
+#
+# pre-commit can be skipped with --no-verify, and rebase, am, cherry-pick and
+# merge never run it at all — so a local commit carrying plaintext is entirely
+# possible. A local commit is survivable; a push is not. This scans every commit
+# in the outgoing range, not just the tip, because the leak may be in a commit
+# that a later one "fixed".
+#
+# Installed by the same one-liner as pre-commit:
+#     git config core.hooksPath tools
+#
+# stdin is: <local ref> <local sha> <remote ref> <remote sha>
+# ---------------------------------------------------------------------------
+set -u
+
+ZERO=0000000000000000000000000000000000000000
+problems=''
+
+while read -r _localref localsha _remoteref remotesha; do
+  [ "$localsha" = "$ZERO" ] && continue          # branch deletion
+
+  if [ "$remotesha" = "$ZERO" ]; then
+    # New branch: everything on it that is not already on some other ref.
+    range=$(git rev-list "$localsha" --not --remotes 2>/dev/null || echo "$localsha")
+  else
+    range=$(git rev-list "$remotesha..$localsha" 2>/dev/null || true)
+  fi
+  [ -n "$range" ] || continue
+
+  for sha in $range; do
+    # Any path under vault-src/ other than the README is plaintext or passwords.
+    hits=$(git show --pretty=format: --name-only -z "$sha" 2>/dev/null \
+      | tr '\0' '\n' \
+      | grep -E '^vault-src/' \
+      | grep -v '^vault-src/README\.md$' || true)
+    [ -n "$hits" ] && problems="$problems
+    $(git rev-parse --short "$sha")  $(printf '%s' "$hits" | tr '\n' ' ')"
+
+    secrets=$(git show --pretty=format: --name-only -z "$sha" 2>/dev/null \
+      | tr '\0' '\n' | grep -E '(^|/)vault-secrets\.json$' || true)
+    [ -n "$secrets" ] && problems="$problems
+    $(git rev-parse --short "$sha")  $secrets"
+  done
+done
+
+if [ -n "$problems" ]; then
+  echo ""
+  echo "  PUSH BLOCKED — locked-post plaintext is in the outgoing commits."
+  echo "$problems"
+  echo ""
+  echo "  These commits already exist locally. Pushing publishes them permanently:"
+  echo "  a public repo keeps superseded blobs fetchable by SHA even after a"
+  echo "  force-push. Rewrite the history before pushing, then treat the content"
+  echo "  as disclosed and rotate it:"
+  echo "    git rebase -i <before>     # drop or edit the offending commit"
+  echo "    node tools/vault.js rotate <slug>"
+  echo ""
+  exit 1
+fi
+exit 0

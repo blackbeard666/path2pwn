@@ -4,12 +4,16 @@
        filter is active (it has to, because the archives are paginated). If you
        change the markup here, change rowHtml() in that file to match. */ -}}
 <article class="row" data-row
-         data-url="{{ .RelPermalink }}"
+         {{ if .Params.locked }}data-locked="true" {{ end }}data-url="{{ .RelPermalink }}"
          data-title="{{ .Title }}"
          data-cve="{{ .Params.cve }}"
          data-cat="{{ .Params.category }}"
          data-type="{{ .Type }}"
-         data-tags="{{ delimit .Params.tags " " }}">
+         {{/* `default slice`: delimit on a nil errors out and takes every
+              archive, /all/ and every tag page down with it — three frames from
+              the real cause. Hand-written vault-src front matter makes a missing
+              tags: entirely plausible. */}}
+         data-tags="{{ delimit (.Params.tags | default slice) " " }}">
   <div class="row-meta">
     <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
     {{ with .Params.cve }}<span class="badge-cve">CVE</span>{{ end }}
@@ -18,7 +22,12 @@
          opening it. Word, never colour alone — same rule as everywhere else. */}}
     {{ with .Params.severity }}<span class="badge-sev is-{{ lower . }}">{{ . }}</span>{{ end }}
     {{ with .Params.category }}<span class="badge-cat">{{ . }}</span>{{ end }}
-    <span>{{ .ReadingTime }} min</span>
+    {{/* A locked post's committed stub has an empty body, so .ReadingTime is 0.
+         tools/vault.js writes the real figure into the front matter. filter.js
+         already guards on a falsy readingTime, so an unguarded value here made
+         a Hugo-rendered row disagree with a JS-rendered one. */}}
+    <span>{{ or .Params.readingTime .ReadingTime }} min</span>
+    {{ if .Params.locked }}<span class="badge-lock">locked</span>{{ end }}
     {{ if .Params.cve }}
       {{ with .Params.status }}<span class="row-status">{{ . }}</span>{{ end }}
     {{ else }}

@@ -40,7 +40,11 @@
       <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
       {{ with .Params.cve }}<span class="badge-cve">CVE</span>{{ end }}
       {{ with .Params.category }}<span class="badge-cat">{{ . }}</span>{{ end }}
-      <span>{{ .ReadingTime }} min</span>
+      {{/* Mirrors post-row.html and single.html: a locked stub's body is empty, so
+         .ReadingTime is 0 and this card — the ONE featured item on the front
+         page — advertised the newest post as a 0 minute read. */}}
+      <span>{{ or .Params.readingTime .ReadingTime }} min</span>
+      {{ if .Params.locked }}<span class="badge-lock">locked</span>{{ end }}
     </div>
     <span class="latest-title">{{ .Title }}</span>
     {{ with .Params.summary }}<span class="latest-summary">{{ . }}</span>{{ end }}

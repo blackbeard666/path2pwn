@@ -3,3 +3,18 @@ resources/
 .hugo_build.lock
 .DS_Store
 Thumbs.db
+
+# ---- Locked posts (see vault-src/README.md) ----------------------------------
+# The PLAINTEXT of protected writeups and the passwords that decrypt them. Only
+# the ciphertext in static/vault/ is ever committed.
+#
+# `vault-src/*` and not `vault-src/`: git cannot re-include a file inside an
+# excluded DIRECTORY, so the directory itself must stay listable for the README
+# negation below to work.
+vault-src/*
+!vault-src/README.md
+
+# Belt and braces. tools/pre-commit is the guard that actually enforces this;
+# a .gitignore is a preference, and `git add -f` walks straight through it.
+**/vault-secrets.json
+.vault-tmp/

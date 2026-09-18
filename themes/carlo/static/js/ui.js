@@ -39,7 +39,10 @@
    Chroma output is generated markdown — there is no template hook to put
    a button inside each <pre>.
    -------------------------------------------------------------------- */
-(function copyButtons() {
+/* Also re-run on `vault:unlocked`: a locked post has no code blocks in the DOM
+   until its body is decrypted and injected. Already idempotent thanks to the
+   [data-copy] guard below, so a second pass over existing blocks is a no-op. */
+function copyButtons() {
   if (!navigator.clipboard) return;
   var blocks = document.querySelectorAll('.post-body .highlight, .post-body pre:not(.highlight pre)');
   Array.prototype.forEach.call(blocks, function (block) {
@@ -65,4 +68,7 @@
     block.classList.add('has-copy');
     block.appendChild(btn);
   });
-})();
+}
+
+copyButtons();
+document.addEventListener('vault:unlocked', copyButtons);

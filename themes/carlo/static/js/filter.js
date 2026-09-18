@@ -110,6 +110,10 @@
     }
     if (r.category) meta.push('<span class="badge-cat">' + esc(r.category) + '</span>');
     if (r.readingTime) meta.push('<span>' + esc(r.readingTime) + ' min</span>');
+    /* Mirrors the lock badge in partials/post-row.html. A locked post is an
+       ordinary row — title, date, tags and summary are all deliberately public;
+       only the body is encrypted. The badge says so before the click. */
+    if (r.locked) meta.push('<span class="badge-lock">locked</span>');
     if (r.cve && r.status) meta.push('<span class="row-status">' + esc(r.status) + '</span>');
     else if (!r.cve && r.source) meta.push('<span class="row-source">' + esc(r.source) + '</span>');
 
@@ -118,6 +122,7 @@
     }).join('');
 
     return '<article class="row" data-row' +
+      (r.locked ? ' data-locked="true"' : '') +
       ' data-url="' + esc(r.url) + '"' +
       ' data-title="' + esc(r.title) + '"' +
       ' data-cve="' + esc(r.cve) + '"' +

@@ -1,0 +1,50 @@
+{{- /* The unlock form for a locked post. Rendered INSIDE .post-body, and
+       static/js/vault.js replaces the whole form with the decrypted article on
+       success — so everything here is disposable and nothing outside it moves.
+
+       There is deliberately NO expiry countdown and no "expires on" date. A
+       client-side date check is a one-line bypass, and showing one would claim
+       an enforcement that does not exist. Expiry here is rotation: the password
+       is reissued and the ciphertext replaced. See vault-src/README.md. */ -}}
+{{- /* NO name= on the password input, deliberately. With JS unavailable this
+       form native-submits, and a named control would put the password in the
+       query string — browser history, the Referer header, and the Cloudflare
+       access logs in front of this domain. A control with no name is never
+       submitted. */ -}}
+<form class="vault-gate" data-vault-form
+      data-vault-base="{{ "/vault/" | relURL }}"
+      data-vault-ver="{{ .Params.vaultVersion }}">
+  <p class="kicker">// locked</p>
+
+  <p class="vault-note">
+    This one is encrypted. It is either under embargo, or covered by rules that
+    don't allow a public write-up. If you were given a password, it goes here.
+  </p>
+
+  <div class="vault-row">
+    <label class="vault-label" for="vault-pw">Password</label>
+    <div class="vault-input">
+      <input id="vault-pw" type="password"
+             autocomplete="off" autocapitalize="off" autocorrect="off"
+             spellcheck="false" required
+             placeholder="xxxxx-xxxxx-xxxxx-xxxxx" data-vault-input />
+    </div>
+    <button type="submit" class="vault-submit" data-vault-submit>unlock</button>
+  </div>
+
+  {{- /* aria-live so the failure is announced, not just painted. Kept in the
+         DOM at all times (hidden) so the region is registered before it fills;
+         a live region inserted at the same moment as its text is not read. */ -}}
+  <p class="vault-error" data-vault-error role="status" aria-live="polite" hidden></p>
+
+  <noscript>
+    <p class="vault-error">This post is encrypted in your browser, so reading it
+    needs JavaScript enabled. Nothing is sent anywhere either way.</p>
+  </noscript>
+
+  <p class="vault-foot">
+    Decryption happens in your browser — AES-256-GCM, key derived with
+    PBKDF2-SHA256. Nothing you type is sent anywhere. Deriving the key takes a
+    second or two on purpose.
+  </p>
+</form>
