@@ -699,6 +699,33 @@ function cmdAudit() {
     }
     notes.push(searched + ' plaintext fragments searched across ' + revs.length +
       ' commit(s), including reflog');
+
+    /* COMMIT MESSAGES, which git grep does not search — it walks trees, not
+       messages. So a sentence pasted from a locked post into a commit message is
+       published and NOTHING above would notice. Found the hard way: a commit
+       here quoted the demo fixture's own body while every other check passed. */
+    const recs = (spawnSync('git', ['-C', ROOT, 'log', '--all', '--reflog',
+      '--format=%H\x1f%B\x1e'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })
+      .stdout || '').split('\x1e');
+    let msgHits = 0;
+    for (const rec of recs) {
+      const cut = rec.indexOf('\x1f');
+      if (cut === -1) continue;
+      const sha = rec.slice(0, cut).trim();
+      const body = rec.slice(cut + 1);
+      for (const slug of slugs()) {
+        const raw = fs.readFileSync(path.join(SRC, slug + '.md'), 'utf8');
+        const fm = /^---[\s\S]*?\n---\n?([\s\S]*)$/.exec(raw);
+        for (const needle of historyNeedles(fm ? fm[1] : raw)) {
+          if (body.indexOf(needle) !== -1) {
+            msgHits++;
+            problems.push('PLAINTEXT IN A COMMIT MESSAGE (' + slug + ') at ' +
+              sha.slice(0, 8) + ':\n      "' + needle.slice(0, 70) + '"');
+          }
+        }
+      }
+    }
+    notes.push(recs.length - 1 + ' commit message(s) scanned; ' + msgHits + ' hit(s)');
   }
 
   const stash = (git(['stash', 'list']).stdout || '').trim();
@@ -737,8 +764,9 @@ function cmdAudit() {
     console.error('');
     process.exit(1);
   }
-  console.log('\n  audit ok — no plaintext in the index, the working tree, the stash or any');
-  console.log('  reachable commit; the commit guard is installed; no orphaned ciphertext.\n');
+  console.log('\n  audit ok — no plaintext in the index, the working tree, the stash,');
+  console.log('  any reachable commit, or any commit MESSAGE; the commit guard is');
+  console.log('  installed; no orphaned ciphertext.\n');
 }
 
 /* ---- entry -------------------------------------------------------------- */
