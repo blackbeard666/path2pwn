@@ -12,6 +12,8 @@ draft: false
 > run logs, cost ledger and the orchestrator's day-by-day notes; I directed it, chose what to disclose, and reviewed
 > it. The numbers were measured from that data rather than recalled. That fits: the harness it describes was built
 > the same way.
+>
+> **The code is public:** [blackbeard666/huntress-ctf-2026-ai-harness](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness). File names below link to it.
 
 {{< hctf2026 "tiles" >}}
 
@@ -112,6 +114,72 @@ Four choices followed:
 
 {{< hctf2026 "arch" >}}
 
+## How it all fits together
+
+The diagram above is one challenge. The whole system is a loop that runs once a day, and it has two "orchestrators"
+that are easy to confuse:
+
+- **The operator** is a long-running Claude Code session (Opus 5.5) that I talk to. It never solves a challenge. It
+  arms the day, watches the run, steps in when a chain asks for help, reads the logs afterwards, writes the
+  post-mortem and the fixes, and keeps notes the next session reads when it starts.
+- **The harness** (`hctf run`) is plain Python with no model inside. It detects the drop, starts one chain per
+  challenge, launches workers into a fixed number of slots, runs the races, routes GM calls and records everything.
+  Every bit of LLM reasoning during a run happens inside a worker the harness launched.
+
+{{< hctf2026 "system" >}}
+
+### A day in the loop
+
+1. **Warm-up, before the drop.** The operator runs [`bin/preflight.sh`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/bin/preflight.sh) (about 78 checks, including the fault-injection
+   suite described later), then `bin/day.sh N --wait`, which starts `hctf run` as a memory-capped systemd unit
+   that sits waiting for the release. It also attaches to `hctf feed`, which prints one line per milestone (a mode
+   solved, a chain blocked, a generalize started, an error) plus a heartbeat. From this point on nothing is
+   re-checked; the drop is for launching only.
+2. **The drop.** `hctf run` asks the GM every 0.3 s whether the day is out and starts each challenge's chain the
+   moment it is listed. Chains run concurrently as threads. LLM workers share five slots (`--local 5`), and solvers
+   and tools run under a process governor ([`hctf/procgov.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/procgov.py)) so a fan-out can't starve the machine.
+3. **During the run, the operator mostly waits.** It reads the feed. When something looks slow it runs `hctf why
+   <chain>` (converging on the same field, or flailing across different ones?) and `hctf reconcile` (re-read the
+   GM's truth rather than trusting local state). It intervenes only on a hard stop: a worker's `HELP.md`, a `!!!`
+   alert (a failed login, a usage limit, a slow network path), or a stuck web target that needs a reset from the
+   arena.
+4. **Every mode CORRECT, then the post-run.** Only once the GM confirms the whole board does learning start: freed
+   capacity goes to stragglers first. The post-run runs as resumable phases ([`hctf/postrun.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/postrun.py), rerun with
+   `hctf postrun --day N` after a crash): the **ratchet** merges the day's proven facts and the workers' "proposed
+   library additions" into [`lib/`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/tree/HEAD/lib) and writes each lane's technique log; **speed-harden** re-times every solver;
+   **train** replays every earlier day's cases against today's library; **prebuild** keeps off-peak workers busy
+   building decoders until the next warm-up. `hctf kpi --record` appends the day's row to the KPI table, and
+   `hctf cost` breaks spend down by chain and stage.
+5. **The post-mortem.** The operator reads `hctf timeline` (per chain: when each mode finished, attempts, generalize
+   cycles, LLM time vs harness overhead), the KPI row and the slowest chains' logs, and writes a post-mortem with a
+   numbered fix plan ([`reference/D28_POSTMORTEM.md`][d28pm] is a typical one). I approve, reject or reorder. Big
+   plans go out to several agents in parallel, one track each, on files that don't overlap.
+6. **Every fix becomes a test.** Each fix lands with a test, and each new failure mode becomes a scenario in the
+   fault-replay suite, so the next preflight checks it.
+7. **Rehearsal.** When a fix touches the critical path, the operator replays an already-solved day on the fake GM
+   and compares mode by mode before the next drop.
+8. **Memory.** The operator writes the day's facts, decisions and my rules into its notes, and every new session
+   starts by reading the index. That is how a rule set on day 6 ("the drop is for launching only") was still being
+   followed on day 31, across dozens of sessions.
+
+### Where the state lives
+
+There is no database and no service besides `hctf run` itself. Everything is files, which is what made it possible
+to replay, diff and audit any day after the fact:
+
+- **Per challenge**, `challenges/dayNN/<lane>-<slug>/`: `chain.json` (the chain's state), and per mode the GM's
+  `contract.json`, `log.jsonl`, `submissions.jsonl`, the worker's `inbox.jsonl`, `triage.md` and the worker logs.
+  Next to them, `solver/` holds `solve.py`, `NOTES.md` and `cases/`.
+- **Shared knowledge**: `lib/` (lane code, [`playbook.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/lib/playbook.py), [`knowledge.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/lib/knowledge.py), [`vocab.json`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/lib/vocab.json)) and one technique log per
+  lane in [`reference/techniques/`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/tree/HEAD/reference/techniques).
+- **Per run**: the day log the feed follows, the cost ledger (`.run/metrics.tsv`) and the post-run's phase record.
+- **The operator's notes**, outside the repository.
+
+So knowledge flows one way each day: a worker's `NOTES.md` and regression cases → the ratchet → `lib/` and the
+technique logs → the next day's prompts (label grammar, helper index, technique log) and the next day's race.
+
+[d28pm]: https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/reference/D28_POSTMORTEM.md
+
 ## One drop, minute by minute
 
 Day 31, the final drop, straight off the live feed:
@@ -188,11 +256,11 @@ tests, and none of it existed on day 1.
 
 | part | size | written by |
 |---|---|---|
-| `hctf/`: orchestrator, CLI, timed runner | 52 modules, 32k lines | orchestrator sessions, reviewed every night |
-| `lib/`: shared solving library | 262 files, 195k lines | mostly the nightly ratchet and the off-peak prebuild. Four files (binary, codec, android, warmups codecs) are 116k of it |
-| `lib/meta/prebuilt/`: speculative metadata extractors | 189 modules, 72k lines | prebuild workers, each kept only behind its own fixtures |
-| `tests/` | 78 suites, 24k lines | most are named after the post-mortem that asked for them |
-| `skills/` and `hctf/prompts/` | 11 skills (547 lines), 15 prompt templates | hand-curated |
+| [`hctf/`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/tree/HEAD/hctf): orchestrator, CLI, timed runner | 52 modules, 32k lines | orchestrator sessions, reviewed every night |
+| [`lib/`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/tree/HEAD/lib): shared solving library | 262 files, 195k lines | mostly the nightly ratchet and the off-peak prebuild. Four files (binary, codec, android, warmups codecs) are 116k of it |
+| [`lib/meta/prebuilt/`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/tree/HEAD/lib/meta/prebuilt): speculative metadata extractors | 189 modules, 72k lines | prebuild workers, each kept only behind its own fixtures |
+| [`tests/`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/tree/HEAD/tests) | 78 suites, 24k lines | most are named after the post-mortem that asked for them |
+| [`skills/`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/tree/HEAD/skills) and [`hctf/prompts/`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/tree/HEAD/hctf/prompts) | 11 skills (547 lines), 15 prompt templates | hand-curated |
 | `challenges/` | 187 solver directories, 3,293 regression cases | single-solve workers and the harness |
 
 {{< hctf2026 "growth" >}}
@@ -213,7 +281,7 @@ The day-31 timeline above was seven of these chains running at once. Here is wha
    (it turned out to save little; see the ledger).
 3. **Race.** A background thread runs the reuse race (yesterday's solvers on today's bytes; details below). If the race answers every field, the worker is
    never sent its task.
-4. **Triage, then GO.** `triage.py` writes `triage.md` with no LLM: what built each artifact, which tools it needs (and
+4. **Triage, then GO.** [`triage.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/triage.py) writes `triage.md` with no LLM: what built each artifact, which tools it needs (and
    installs them if missing), the contract's shape. At the download mark the worker gets `GO` plus the triage.
 5. **Solve.** The worker writes `solver/solve.py` and runs `hctf submit --from-solver` in the same shell call. That runs
    the solver, submits every value, and bisects a bulk "incorrect" down to the fields that are actually wrong.
@@ -263,7 +331,7 @@ still: no GM token, no secrets, and only their listed paths writable.
 
 Three Claude Code hooks shape the agent loop from outside the prompt:
 
-- **After every tool call (`nudge.py`)** the harness can talk to a worker mid-run. The hook drains the challenge's
+- **After every tool call ([`nudge.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/.claude/hooks/nudge.py))** the harness can talk to a worker mid-run. The hook drains the challenge's
   inbox into the worker's context. The reuse race uses it to say which fields are already confirmed, so the worker
   stops working on them:
 
@@ -278,10 +346,10 @@ Three Claude Code hooks shape the agent loop from outside the prompt:
 
   At 10 and 30 minutes without a solve, the same hook tells the worker to split into two or three subagents on
   genuinely different directions.
-- **When a worker tries to stop (`stop_gate.py`)** the hook refuses until the GM says CORRECT *and* the solver passes
+- **When a worker tries to stop ([`stop_gate.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/.claude/hooks/stop_gate.py))** the hook refuses until the GM says CORRECT *and* the solver passes
   its regression cases, or the worker has written `HELP.md` asking for a human. After ten refusals it lets go, so a
   stuck worker escalates instead of grinding.
-- **Before every shell command (`no_block.py`)** pagers, REPLs, `tail -f` and listeners are refused unless wrapped in
+- **Before every shell command ([`no_block.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/.claude/hooks/no_block.py))** pagers, REPLs, `tail -f` and listeners are refused unless wrapped in
   `timeout`. One hung shell call can eat a whole timed window.
 
 ### How the prompts are built
@@ -291,14 +359,14 @@ harness fills in at launch. No templating engine; unknown braces (like JSON exam
 
 | template | lines | the worker's job |
 |---|---|---|
-| `single.md` | 158 | solve the Single Solve and leave a reusable `solve.py` |
-| `generalize.md` | 90 | a timed variant failed: fix the solver offline without breaking any earlier case |
-| `answer_first.md` | 32 | beside the single worker: answer the still-open fields straight from the bytes, nothing else |
-| `live.md` | 26 | answer the unresolved fields of a still-open timed attempt by hand while the solver is being fixed |
-| `fix.md` | 14 | "URGENT": patch the solver inside a live clock (unchanged since day 1) |
-| `codify.md` | 42 | web: turn a winning exploit into a reusable plugin |
-| `ratchet.md`, `ratchet_log.md` | 48, 39 | overnight: merge the day's proven facts into the library; write the lane's technique log |
-| `prebuild.md` + six lane briefs | 45 + 12-47 | overnight: speculatively build decoders for variants we haven't seen yet |
+| [`single.md`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/prompts/single.md) | 158 | solve the Single Solve and leave a reusable `solve.py` |
+| [`generalize.md`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/prompts/generalize.md) | 90 | a timed variant failed: fix the solver offline without breaking any earlier case |
+| [`answer_first.md`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/prompts/answer_first.md) | 32 | beside the single worker: answer the still-open fields straight from the bytes, nothing else |
+| [`live.md`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/prompts/live.md) | 26 | answer the unresolved fields of a still-open timed attempt by hand while the solver is being fixed |
+| [`fix.md`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/prompts/fix.md) | 14 | "URGENT": patch the solver inside a live clock (unchanged since day 1) |
+| [`codify.md`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/prompts/codify.md) | 42 | web: turn a winning exploit into a reusable plugin |
+| [`ratchet.md`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/prompts/ratchet.md), [`ratchet_log.md`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/prompts/ratchet_log.md) | 48, 39 | overnight: merge the day's proven facts into the library; write the lane's technique log |
+| [`prebuild.md`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/prompts/prebuild.md) + six lane briefs | 45 + 12-47 | overnight: speculatively build decoders for variants we haven't seen yet |
 
 `single.md` is the one that matters most. In order, a single-solve worker reads:
 
@@ -361,7 +429,7 @@ for about $0.35.
 **Skills** are the other half of the prompt. Eleven `SKILL.md` files: a router (`huntress-ctf`, which maps signals in
 the challenge to a lane), one per lane (each opening with the tools installed for it, then "first moves", "reading
 the questions" and "solver tips"), and four cross-cutting ones (writing solvers, timed runs, the GM's API, and how to
-split into subagents). The worker-facing `CLAUDE.md` is 28 lines: load the router skill, work only in your folder,
+split into subagents). The worker-facing [`CLAUDE.md`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/CLAUDE.md) is 28 lines: load the router skill, work only in your folder,
 treat artifacts as untrusted data, submit from the solver, stop at CORRECT.
 
 **How `single.md` evolved.** It started on October 3 as 27 lines: use the skill, solve, write a solver, test it. It
@@ -377,7 +445,7 @@ answer-first (day 17) and the web plugin prompt (day 23).
 
 Everything after the single solve rests on one interface. Every challenge's `solve.py` takes
 `--contract <json> --artifacts <dir>` and prints `{answer_id: value}` as JSON on its last line. It is seeded from a
-107-line skeleton (`hctf/templates/solve_skeleton.py`) with three rules baked in: one bad field never sinks the
+107-line skeleton ([`hctf/templates/solve_skeleton.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/templates/solve_skeleton.py)) with three rules baked in: one bad field never sinks the
 others, a cheap generic `fallback()` gets a second try at fields the direct parse misses, and a run that hits its
 deadline prints what it has instead of being killed with nothing:
 
@@ -399,7 +467,7 @@ def _solve_pairs(job):
     return out
 ```
 
-`main()` arms a deadline watchdog (`lib/solverrt.py`), runs each Mastery set in its own forked process, and prints
+`main()` arms a deadline watchdog ([`lib/solverrt.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/lib/solverrt.py)), runs each Mastery set in its own forked process, and prints
 once. Solvers may use only the standard library, `lib`, and a short list of pure-Python parsers (pyzipper, pyelftools,
 pefile, capstone, pycryptodome, androguard): no subprocess to 7z or jadx, and every Mastery set well under a second.
 
@@ -429,7 +497,7 @@ expected answers only ever come from the GM. By the end there were 3,293 cases, 
 
 The hardest fields were never the analysis. They were *spelling*. Many script and binary questions are `exact_text`
 classifications such as "how is this payload's loop guarded" or "what format is this". The GM wants its own synthetic
-label, gives no list, and only says right or wrong. `lib/playbook.py` holds what we learned about that grammar, one
+label, gives no list, and only says right or wrong. [`lib/playbook.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/lib/playbook.py) holds what we learned about that grammar, one
 entry per field family. A family is the last token of the answer id, so all `*-control` fields share a rule:
 
 ```python
@@ -460,7 +528,7 @@ When a label is still unknown, `hctf labels` ranks candidates in a fixed order: 
 the GM gave a list, never probe), then the solver's value, the playbook's seeds, alternate renderings (hex width, GUID
 braces), labels confirmed for sibling fields, and finally compositions of terms from the artifact. Anything the
 playbook or the GM already rejected is filtered out, and each field gets a budget of 25 probes. Every confirmed
-closed-vocabulary label lands in `lib/vocab.json` (152 by the end), which the timed runner reads *inside* the window
+closed-vocabulary label lands in [`lib/vocab.json`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/lib/vocab.json) (152 by the end), which the timed runner reads *inside* the window
 to fix a rejected field without an LLM.
 
 Every submit also passes local guards first: enum membership, regex patterns, flag shape, slug words, caps on wrong
@@ -484,7 +552,7 @@ is *real*, not that it is *right*; that judgment stays with the worker.
 
 Web ended up the most "library" of the lanes. Each target exposes a clue endpoint, and `lib.web` dispatches on the
 *keys* of that response to five built-in exploit classes and 21 per-class plugins, racing them against prior web
-solvers and a generic ladder. A worker that meets a new class writes it as a plugin. `lib/web/plugin.py` promotes it
+solvers and a generic ladder. A worker that meets a new class writes it as a plugin. [`lib/web/plugin.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/lib/web/plugin.py) promotes it
 only after it works against a live target.
 
 ### The reuse race
@@ -506,7 +574,7 @@ Time Trials started with a few seconds on the clock, so the timed path is a scri
 **Homebase** VM inside the CTF network (2 vCPU, 60 credits a day), and routing to it was measured rather than assumed.
 Timed submits through the inside proxy dropped from **2.76 s to 0.55 s** on day 5.
 
-On Homebase a long-lived daemon (`hb_daemon.py`) holds one SSH stdio channel open, and per solver it keeps a
+On Homebase a long-lived daemon ([`hb_daemon.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/hb_daemon.py)) holds one SSH stdio channel open, and per solver it keeps a
 **zygote**: a Python process that has already imported the solver and its libraries. Each attempt forks it, so a
 solve starts in 15-51 ms instead of the 150-230 ms of a fresh interpreter:
 
@@ -557,7 +625,7 @@ all. A **duel** races two or three generalizers (Opus at medium plus a Sonnet ra
 After each day the **post-run** turned what was proven into tomorrow's head start:
 
 - a test-gated **ratchet**, the only writer to the shared `lib/`, which promotes the day's techniques and
-  GM-confirmed labels into `lib/knowledge.py`, `lib/vocab.json` and the lane modules, and rolls back unless every
+  GM-confirmed labels into [`lib/knowledge.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/lib/knowledge.py), `lib/vocab.json` and the lane modules, and rolls back unless every
   suite passes
 - per-lane **technique logs** (1,448 lines by the end) that the next day's prompts inline
 - **speed-harden**, an overnight pass that re-times every solver and rolls an edit back unless it is at least 5% faster
@@ -574,17 +642,17 @@ After each day the **post-run** turned what was proven into tomorrow's head star
 
 | subsystem | modules | job |
 |---|---|---|
-| Launch and chain state | `orchestrate.py` (10k lines), `cli.py`, `paths.py`, `hostguard.py`, `driftwatch.py` | `run()`, one `Chain` per challenge, atomic `chain.json` state, every `hctf` subcommand, one busy harness per host, re-fetch a contract the GM rewrote in place |
-| Triage (no LLM) | `triage.py`, `toolchain.py`, `contract.py`, `retrieval.py` | bytes and description → toolchain → install what's missing → `triage.md`; contract-shape guard; past solves by fingerprint |
-| Workers | `workers.py`, `inbox.py`, `coordinator.py`, `duel.py`, `prompts/*.md` | `claude -p` in a sandbox, warm `READY`/`GO`, relaunch on limits; mid-run messages; a tool-less reviewer that sends one hint to a stalled worker; best-of-N racers |
-| Timed runner | `timed.py`, `hb_timed.py`, `hb_daemon.py`, `hb_zygote.py`, `procgov.py` | start → download → solve → submit in one process; a daemon on Homebase over one SSH channel; fork-per-solve; process groups, nice and OOM priorities |
-| GM transport | `gm.py`, `gmroute.py`, `ratebucket.py`, `mssproxy.py`, `remote.py` | stdlib client with keep-alive; measured, hedged routing; an account-wide 429 governor; an MSS-clamping relay |
-| Race and labels | `solvers.py`, `libracer.py`, `labels.py`, `grouptest.py`, `fmtalt.py`, `scout.py` | reuse race and solver tests; label resolution; parallel bisection of rejected fields; alternate renderings of a value |
-| Robustness probes | `mutate.py`, `compound.py`, `family.py`, `today_probe.py` | mutate yesterday's cases before the GM does |
-| Web | `webtarget.py`, `webharden.py`, `lib/web/` | live target lifecycle; clue-keyed exploit handlers |
-| Learning | `postrun.py`, `prebuild.py`, `train.py` | resumable post-run phases, off-peak breadth, replaying every earlier day |
-| Observability | `feed.py`, `watch.py`, `kpi.py`, `timeline.py`, `ressample.py` | one line per milestone, KPI rows, timing marks, a resource sampler |
-| Rehearsal | `replay_gm.py` | a fake GM for replays and fault injection |
+| Launch and chain state | [`orchestrate.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/orchestrate.py) (10k lines), [`cli.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/cli.py), [`paths.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/paths.py), [`hostguard.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/hostguard.py), [`driftwatch.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/driftwatch.py) | `run()`, one `Chain` per challenge, atomic `chain.json` state, every `hctf` subcommand, one busy harness per host, re-fetch a contract the GM rewrote in place |
+| Triage (no LLM) | `triage.py`, [`toolchain.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/toolchain.py), [`contract.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/contract.py), [`retrieval.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/retrieval.py) | bytes and description → toolchain → install what's missing → `triage.md`; contract-shape guard; past solves by fingerprint |
+| Workers | [`workers.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/workers.py), [`inbox.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/inbox.py), [`coordinator.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/coordinator.py), [`duel.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/duel.py), `prompts/*.md` | `claude -p` in a sandbox, warm `READY`/`GO`, relaunch on limits; mid-run messages; a tool-less reviewer that sends one hint to a stalled worker; best-of-N racers |
+| Timed runner | [`timed.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/timed.py), [`hb_timed.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/hb_timed.py), `hb_daemon.py`, [`hb_zygote.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/hb_zygote.py), [`procgov.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/procgov.py) | start → download → solve → submit in one process; a daemon on Homebase over one SSH channel; fork-per-solve; process groups, nice and OOM priorities |
+| GM transport | [`gm.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/gm.py), [`gmroute.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/gmroute.py), [`ratebucket.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/ratebucket.py), [`mssproxy.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/mssproxy.py), [`remote.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/remote.py) | stdlib client with keep-alive; measured, hedged routing; an account-wide 429 governor; an MSS-clamping relay |
+| Race and labels | [`solvers.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/solvers.py), [`libracer.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/libracer.py), [`labels.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/labels.py), [`grouptest.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/grouptest.py), [`fmtalt.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/fmtalt.py), [`scout.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/scout.py) | reuse race and solver tests; label resolution; parallel bisection of rejected fields; alternate renderings of a value |
+| Robustness probes | [`mutate.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/mutate.py), [`compound.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/compound.py), [`family.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/family.py), [`today_probe.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/today_probe.py) | mutate yesterday's cases before the GM does |
+| Web | [`webtarget.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/webtarget.py), [`webharden.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/webharden.py), [`lib/web/`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/tree/HEAD/lib/web) | live target lifecycle; clue-keyed exploit handlers |
+| Learning | [`postrun.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/postrun.py), [`prebuild.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/prebuild.py), [`train.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/train.py) | resumable post-run phases, off-peak breadth, replaying every earlier day |
+| Observability | [`feed.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/feed.py), [`watch.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/watch.py), [`kpi.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/kpi.py), `timeline.py`, [`ressample.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/ressample.py) | one line per milestone, KPI rows, timing marks, a resource sampler |
+| Rehearsal | [`replay_gm.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/replay_gm.py) | a fake GM for replays and fault injection |
 
 </div>
 
@@ -667,12 +735,12 @@ Model downgrades did happen, and the most interesting one is specific to securit
 A CTF that drops once a day gives you one live test a day. Most of the harness's reliability came from making failure
 reproducible at night instead.
 
-- **A fake Game Master.** `hctf/replay_gm.py` (448 lines) serves a solved day's saved contracts and bytes and judges
+- **A fake Game Master.** [`hctf/replay_gm.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/replay_gm.py) (448 lines) serves a solved day's saved contracts and bytes and judges
   single solves locally. Timed modes are proxied to the real GM, which still hands out fresh variants. With the library
   pinned to the commit from before that day, a replay is an honest re-run of the day from scratch. Two catches: each
   replay spends real timed variants, so we ran at most two or three a day, and web can't be replayed at all.
 - **Fault injection.** The same fake GM can cut replies short, add latency, return 429s or a 503 on `start`, flap
-  Mastery's prerequisite and stall downloads. `tests/test_fault_replay.py` runs 26 checks across 11 scenarios, and
+  Mastery's prerequisite and stall downloads. [`tests/test_fault_replay.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/tests/test_fault_replay.py) runs 26 checks across 11 scenarios, and
   every scenario is a failure that really happened in a live run. It is green in about two minutes, and a red run
   fails the warm-up preflight.
 - **Suites named after post-mortems.** The test suites grew from 10 on day 8 to 78 at the end, about 2,700 assertions.
@@ -681,7 +749,7 @@ reproducible at night instead.
   because a cache was keyed on `id(member_bytes)`: on the 2-vCPU VM one process solved several sets in turn, a freed
   object's address came back as the next set's member, and that set read the previous set's facts. It never showed on
   12 local cores, where every set had its own process.
-- **Preflight.** `bin/preflight.sh` runs about 78 checks in 11 sections at the warm-up: a duplicate VPN client, clock
+- **Preflight.** [`bin/preflight.sh`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/bin/preflight.sh) runs about 78 checks in 11 sections at the warm-up: a duplicate VPN client, clock
   skew over 3 s, memory, Claude login and token expiry, every lane tool working *inside* the worker sandbox, Homebase
   toolchain and credits, no other harness busy on the host, solver directories missing `solve.py`, and the fault
   suite. After the drop, nothing is checked; the launch just goes.
@@ -816,7 +884,7 @@ learned to parse the dated reset and raise a loud `!!!` alert. It fired correctl
 | Web and the whole board | Oct 19-25 | web lane end to end, parallel web targets, host exclusivity, web plugins, the rate governor, the GM relay with measured routing, race-first handoff |
 | Killing the tail | Oct 26-31 | the in-network race, the no-LLM library racer, parallel live answers, big-reply routing, final-drop fixes |
 
-| date | `hctf/` lines | `lib/` lines | test suites (lines) |
+| date | [`hctf/`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/tree/HEAD/hctf) lines | [`lib/`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/tree/HEAD/lib) lines | test suites (lines) |
 |---|---|---|---|
 | Oct 3 | 1,638 | 0 | 0 |
 | Oct 5 | 4,331 | 2,132 | 1 (127) |
@@ -855,10 +923,10 @@ the orchestrator; "Org." is something the organizers said.
 | Oct 3 | Build the harness: orchestrator, `claude -p` lane workers, GM client, Homebase bridge | Orch. | the Arena's premise is a solver on autopilot | a practice re-run of day 1 went 17/17 on Oct 4 |
 | Oct 3 | Reach Homebase over `ssh` commands, not port forwarding | Orch. | the rules prohibit SSH port forwarding | the bridge design |
 | Oct 4 | Talk to the GM directly with a pairing token; Homebase optional | Orch. | the public GM works and the VM was often off | default for the rest of the month |
-| Oct 4 | Learn label spellings by probing, and cache every confirmed one | Orch. | day 3 lost ~1.5 h guessing synonyms | `labels.py`, `vocab.json` |
+| Oct 4 | Learn label spellings by probing, and cache every confirmed one | Orch. | day 3 lost ~1.5 h guessing synonyms | [`labels.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/labels.py), [`vocab.json`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/lib/vocab.json) |
 | Oct 5 | Target: clear a day in under 4 minutes | Me | day 5 took over 8 minutes, bound by one script single | the first speed plan |
 | Oct 5 | Send timed submits through Homebase's in-network proxy | Orch. | public submits took 5-8 s | 2.76 s → 0.55 s |
-| Oct 5 | Run everything natively in WSL; VPN as a systemd unit; one-command preflight | Orch. | the Windows-side setup kept breaking | `preflight.sh`, `day.sh` |
+| Oct 5 | Run everything natively in WSL; VPN as a systemd unit; one-command preflight | Orch. | the Windows-side setup kept breaking | [`preflight.sh`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/bin/preflight.sh), [`day.sh`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/bin/day.sh) |
 | Oct 5 | An ATT&CK reference layer, separate from GM-verified knowledge, plus a pre-submit guard | Orch. | about a third of script fields are ATT&CK ids | correct first try from then on |
 | Oct 6 | Write down the north-star goals | Me | a yardstick for every later choice | the list above |
 | Oct 6 | Effort floor `high` on every lane; `xhigh` reverted | Me | xhigh turns ~50% slower, no wall-clock gain | standing rule |
@@ -870,11 +938,11 @@ the orchestrator; "Org." is something the organizers said.
 | Oct 7 | **Revert the hand-built lane parsers: LLM-first with standard tools** | Me | "don't reinvent the wheel; tomorrow is unknown" | the defining rule |
 | Oct 7 | Exception: a shared codec helper for the script lane | Me | 97% of script time was token generation | lane 403 → 247 s |
 | Oct 7 | Subagents for the script lane: on, then off | Orch. | 158 s vs 302 s between runs: too much variance | serial stays |
-| Oct 7 | Install a standard tool for every lane; preflight checks them | Me | skills pointed at tools that weren't installed | `install_tools.sh` |
+| Oct 7 | Install a standard tool for every lane; preflight checks them | Me | skills pointed at tools that weren't installed | [`install_tools.sh`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/setup/install_tools.sh) |
 | Oct 8 | Never call an incomplete run "best"; report N/15 first | Me | a 14/15 run had been ranked best | standing rule |
 | Oct 8 | Probe mutated variants before the GM serves them; partial submits | Orch. | the organizers said timed modes serve unseen mutations | mutation probe |
 | Oct 8 | Plan for Mastery bundles mixing earlier days | Me | an organizer hint | compounding probe |
-| Oct 8 | Detect each artifact's toolchain and install what's missing, even mid-run | Me | a Swift demangler gap went unnoticed | `toolchain.py` |
+| Oct 8 | Detect each artifact's toolchain and install what's missing, even mid-run | Me | a Swift demangler gap went unnoticed | [`toolchain.py`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/hctf/toolchain.py) |
 | Oct 9 | Homebase AI workers: built, then opt-in, then off | Me | the credits were gone in ~30 minutes | Homebase for timed attempts only |
 | Oct 12 | Hold the missed days 10-11 until the day-9 speed work lands | Me | the host had been asleep since Oct 9 | ran late, cleared in 97 s and 69 s from launch |
 | Oct 12 | Warm solver daemon on Homebase (fork per solve) | Orch. | per-attempt overhead dominated | 150-230 ms → 15-51 ms |
@@ -891,7 +959,7 @@ the orchestrator; "Org." is something the organizers said.
 | Oct 16 | Cancel the `xhigh` week after the first A/B | Me | no detectable benefit | `high` stays |
 | Oct 16 | Duel racers at medium effort | Me | medium won 3/3 singles | exception to the floor |
 | Oct 16 | Parallel bisection, process governor, memory-capped launcher | Me | WSL ran out of memory; 55 sequential probes | shipped |
-| Oct 17 | **The sub-2-minute plan**: fault replay in preflight, KPIs, answer-first | Me | every slow day was one generalize or one new bug | `PLAN_SUB2MIN.md` |
+| Oct 17 | **The sub-2-minute plan**: fault replay in preflight, KPIs, answer-first | Me | every slow day was one generalize or one new bug | [`PLAN_SUB2MIN.md`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/blob/HEAD/reference/PLAN_SUB2MIN.md) |
 | Oct 18 | Depth-3 label search, contract-drift watcher | Orch. | the day-17 GM-side bug | shipped |
 | Oct 18 | Best-of-3 duels with a Sonnet racer | Me | cold singles have high variance | single duels off on day 26 |
 | Oct 19 | Web runs one target at a time; a stuck attempt is revived from the arena | Me / Org. | one live target per team | 9/9 by hand on day 19 |
@@ -1026,8 +1094,8 @@ and behaves the same inside the sandbox and on the VM.
 - **Workers:** 1,842 `claude -p` launches, 28,503 turns and ~198 worker-hours since day 9. Opus 5.5 did nearly all of
   it, with Sonnet 5.5 as a duel racer.
 - **Tokens:** ~7.5B processed, ~40M of them output.
-- **Harness:** 339 commits on 20 branches from Oct 3 to Oct 31. About 32k lines of orchestrator (`hctf/`), 195k lines
-  of library (`lib/`, much of it generated codecs and decoders), 78 test files and 11 agent skills.
+- **Harness:** 339 commits on 20 branches from Oct 3 to Oct 31. About 32k lines of orchestrator ([`hctf/`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/tree/HEAD/hctf)), 195k lines
+  of library ([`lib/`](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness/tree/HEAD/lib), much of it generated codecs and decoders), 78 test files and 11 agent skills.
 - **Homebase:** ~39 VM hours logged across 22 boots.
 - **Hall of Fame (the public speed board):** our timed entries, all from days 7-13, sat mid-pack: a median rank in the
   20s, best 9th. That board ranked raw milliseconds per attempt, and from mid-month the GM ran timed modes untimed by
