@@ -22,13 +22,20 @@
    paragraph at 16.5px, and the numbered h2 rules overhung the text they introduced
    by ~268px. "70ch" looked like one measure and behaved like one per font-size.
    662px is 70ch at the body's 16.5px, so paragraphs are unchanged and everything
-   else now lines up with them. Evidence still opts out via `max-width: none`. */
+   else now lines up with them. Evidence still opts out via `max-width: none`.
+
+   2026-11-01: prose now spans the full article column (`none`). On desktop the
+   662px measure ended text roughly halfway across the column while figures,
+   tables and code ran the full width, which read as a half-empty page on long
+   technical writeups. All three users of --measure are `max-width`, so `none`
+   is a valid value for each. Phones are unaffected (the column is narrower
+   than 662px there anyway). */
 /* --header-h is the height of the sticky .site-header. It was the literal 84px
    in three places — the anchor scroll offset, the sticky TOC's `top`, and now
    that TOC's max-height — and those three have to agree or the TOC either
    hides under the header or leaves a gap below it. */
 :root {
-  --measure: 662px;
+  --measure: none;
   --header-h: 84px;
 }
 
@@ -1410,9 +1417,9 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
 .hc-cell:hover { stroke: var(--r); stroke-width: 2; }
 .hc-edge { stroke: var(--n-600); stroke-width: 1.5; }
 .hc-arrowhead { fill: var(--n-600); }
-.hc-node rect { fill: var(--surface); stroke: var(--n-700); stroke-width: 1; }
-.hc-node-ours rect { stroke: var(--r); stroke-width: 2; }
-.hc-node-plat rect { stroke: var(--g-edge); stroke-width: 2; }
+.hc-node rect, .hc-node polygon { fill: var(--surface); stroke: var(--n-700); stroke-width: 1; }
+.hc-node-ours rect, .hc-node-ours polygon { stroke: var(--r); stroke-width: 2; }
+.hc-node-plat rect, .hc-node-plat polygon { stroke: var(--g-edge); stroke-width: 2; }
 .hc-node-t { font-family: var(--font-body); font-size: 14px; font-weight: 700; fill: var(--ink); }
 
 .post-body .hc-tv { max-width: none; margin-top: 10px; }
