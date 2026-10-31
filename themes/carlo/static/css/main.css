@@ -1424,6 +1424,11 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
 }
 .hc-tv > summary:hover { color: var(--g); }
 .hc-tablewrap { overflow-x: auto; margin-top: 10px; }
+/* Wide prose tables in long writeups: scroll sideways on phones instead of
+   collapsing into a very tall single column. */
+.post-body .hc-scroll { overflow-x: auto; max-width: none; }
+.post-body .hc-scroll > table { min-width: 680px; }
+
 .post-body .hc-table td { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .post-body .hc-days td:last-child { white-space: normal; min-width: 240px; }
 .post-body .hc-wide td, .post-body .hc-wide th { padding: 6px 8px; font-size: 12px; }
