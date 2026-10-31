@@ -1360,3 +1360,139 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
   .post-nav-next { text-align: left; }
 
 }
+
+/* ---- HCTF RETROSPECTIVE (charts, tiles, dashboard) ----------------------
+   Styles for the GENERATED partials in partials/hctf2026/ (written by the
+   harness repo's reference/writeup/render.py) and the ctf dashboard layout.
+
+   Colour follows the two-accent rule, applied to data:
+     red  --r       = what we did: our series, our dots, the "after" marks
+     green --g      = the platform: target lines, GM/Homebase nodes
+     neutral ramp   = everyone else, grids, axes, the heat ramp (--ink at
+                      falling opacity, so a 6x31 grid never becomes a green field)
+   Every value comes from tokens.css, so both themes work with no per-chart
+   colour. Marks are square (--radius is 0 site-wide); lines are 2px; grids
+   are solid 1px --n-800 hairlines. Every mark carries an SVG <title> for a
+   native tooltip, and every chart has a table-view twin in <details>.
+   -------------------------------------------------------------------- */
+.post-body .hc-fig { max-width: none; overflow-x: auto; }
+.hc-svg { display: block; width: 100%; height: auto; }
+.hc-tick, .hc-label, .hc-legend text, .hc-node-s {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--n-500);
+}
+.hc-label { fill: var(--n-300); font-weight: 700; }
+.hc-rowlab { fill: var(--n-400); }
+.hc-plat-t { fill: var(--g); }
+.hc-grid { stroke: var(--n-800); stroke-width: 1; }
+.hc-axis { stroke: var(--n-700); stroke-width: 1; }
+.hc-target { stroke: var(--g); stroke-width: 1; }
+.hc-late { fill: var(--surface); }
+.hc-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.hc-line.hc-ours { stroke: var(--r); }
+.hc-dot { stroke: var(--ground); stroke-width: 2; }
+.hc-dot.hc-ours { fill: var(--r); }
+.hc-dot.hc-field { fill: var(--n-600); }
+.hc-dot.hc-hollow { fill: var(--ground); stroke: var(--r); }
+.hc-range { stroke: var(--n-700); stroke-width: 2; }
+.hc-bar { fill: var(--n-600); }
+.hc-bar.hc-ours { fill: var(--r); }
+.hc-hitarea { fill: transparent; }
+.hc-hit:hover .hc-bar, .hc-hit:hover .hc-dot { opacity: 0.75; }
+.hc-cell { fill: var(--ink); }
+.hc-b0 { fill-opacity: 1; }
+.hc-b1 { fill-opacity: 0.78; }
+.hc-b2 { fill-opacity: 0.58; }
+.hc-b3 { fill-opacity: 0.4; }
+.hc-b4 { fill-opacity: 0.24; }
+.hc-b5 { fill-opacity: 0.11; }
+.hc-cell:hover { stroke: var(--r); stroke-width: 2; }
+.hc-edge { stroke: var(--n-600); stroke-width: 1.5; }
+.hc-arrowhead { fill: var(--n-600); }
+.hc-node rect { fill: var(--surface); stroke: var(--n-700); stroke-width: 1; }
+.hc-node-ours rect { stroke: var(--r); stroke-width: 2; }
+.hc-node-plat rect { stroke: var(--g-edge); stroke-width: 2; }
+.hc-node-t { font-family: var(--font-body); font-size: 14px; font-weight: 700; fill: var(--ink); }
+
+.post-body .hc-tv { max-width: none; margin-top: 10px; }
+.hc-tv > summary {
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--n-500);
+}
+.hc-tv > summary:hover { color: var(--g); }
+.hc-tablewrap { overflow-x: auto; margin-top: 10px; }
+.post-body .hc-table td { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.post-body .hc-days td:last-child { white-space: normal; min-width: 240px; }
+.post-body .hc-wide td, .post-body .hc-wide th { padding: 6px 8px; font-size: 12px; }
+
+.post-body .hc-tiles {
+  max-width: none;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--n-800);
+  border: var(--hairline) solid var(--n-800);
+}
+.hc-tile { padding: 16px 18px; background: var(--ground); }
+.post-body .hc-tile p { margin: 0; }
+.post-body .hc-tile-l {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--n-500);
+}
+.post-body .hc-tile-v { margin-top: 6px; font-size: 26px; font-weight: 800; line-height: 1.1; color: var(--ink); }
+.post-body .hc-tile-n { margin-top: 6px; font-size: 13px; line-height: 1.4; color: var(--n-500); }
+
+.hc-dash { padding: 28px var(--gutter) 44px; }
+.hc-dash > .post-lede { margin-bottom: 8px; }
+.hc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 22px;
+  padding-bottom: 12px;
+  border-bottom: var(--rule) solid var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.post-body .hc-tabs a { border-bottom: 0; color: var(--n-500); padding: 6px 0; }
+.post-body .hc-tabs a:hover { color: var(--g); }
+.post-body .hc-tabs a.is-active { color: var(--ink); box-shadow: inset 0 -2px 0 var(--r); }
+.post-body .hc-panel { max-width: none; }
+.hc-panel > * + * { margin-top: 28px; }
+.post-body .hc-panel-h { margin-top: 32px; }
+.hc-js .hc-panel-h { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.hc-foot { font-family: var(--font-mono); font-size: 12px; color: var(--n-600); }
+
+@media (max-width: 1100px) {
+  .post-body .hc-tiles { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 720px) {
+  .hc-svg { min-width: 640px; }
+  .post-body .hc-tile-v { font-size: 21px; }
+  .hc-dash { padding: 22px var(--gutter) 36px; }
+}
+/* A bare table (no figure around it) is a direct child of .post-body, so it
+   would inherit the prose measure; tables are evidence and opt out. */
+.post-body > .hc-tablewrap { max-width: none; }
+/* Dashboard chrome lives inside .post-body for its link/table styling, so it
+   opts out of the prose measure and the 16.5px prose size explicitly. */
+.post-body > .hc-tabs { max-width: none; }
+.post-body .hc-foot { font-size: 12px; line-height: 1.6; color: var(--n-600); }
+.post-body .hc-tiles-3 { grid-template-columns: repeat(3, 1fr); }
+.post-body .hc-fig-title {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--n-400);
+}
+@media (max-width: 720px) {
+  .post-body .hc-tiles-3 { grid-template-columns: 1fr; }
+}

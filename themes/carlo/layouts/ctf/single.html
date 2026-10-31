@@ -1,0 +1,35 @@
+{{ define "main" }}
+{{- /* A CTF stats dashboard: post head, then one full-width column of tabbed
+       panels. No TOC — the tab row is the navigation. The panels come from a
+       GENERATED partial (partials/hctf2026/dashboard.html, written by the
+       harness repo's reference/writeup/render.py); front matter `dashboard`
+       names it so a later event can add its own without a new layout.
+
+       Tabs are progressive enhancement: without static/js/hctf-dash.js every
+       panel renders stacked and the tab row is a list of in-page anchors. The
+       script is external and same-origin, so the CSP needs no change. */ -}}
+<header class="post-head">
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="{{ "/" | relURL }}">all</a>
+    <span aria-hidden="true">/</span>
+    <span>ctf</span>
+    <span aria-hidden="true">/</span>
+    <span class="crumb-current">{{ .Title | truncate 42 }}</span>
+  </nav>
+  <h1>{{ .Title }}</h1>
+  <div class="post-meta">
+    {{ with .Params.category }}<span class="badge-cat">{{ . }}</span>{{ end }}
+    <time datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
+    {{ with .Params.writeup }}<a href="{{ . | relURL }}">read the writeup →</a>{{ end }}
+  </div>
+</header>
+
+<div class="hc-dash" data-hc-dash>
+  {{ with .Params.summary }}<p class="post-lede">{{ . }}</p>{{ end }}
+  {{ with .Content }}<div class="post-body hc-intro">{{ . }}</div>{{ end }}
+  <div class="post-body">
+    {{ partial (printf "%s/dashboard.html" (.Params.dashboard | default "hctf2026")) . }}
+  </div>
+</div>
+<script src="{{ "js/hctf-dash.js" | relURL }}" defer></script>
+{{ end }}

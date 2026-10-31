@@ -1,0 +1,32 @@
+<nav class="hc-tabs" aria-label="Dashboard sections"><a class="hc-tab" href="#overview" data-tab="overview">Overview</a><a class="hc-tab" href="#placement" data-tab="placement">Placement</a><a class="hc-tab" href="#speed" data-tab="speed">Speed</a><a class="hc-tab" href="#days" data-tab="days">Day by day</a><a class="hc-tab" href="#cost" data-tab="cost">Cost &amp; tokens</a><a class="hc-tab" href="#engineering" data-tab="engineering">Engineering</a><a class="hc-tab" href="#hof" data-tab="hof">Hall of Fame</a></nav>
+<section class="hc-panel" id="overview" data-panel="overview"><h2 class="hc-panel-h">Overview</h2>
+{{ partial "hctf2026/tiles.html" . }}
+{{ partial "hctf2026/finish.html" . }}
+</section>
+<section class="hc-panel" id="placement" data-panel="placement"><h2 class="hc-panel-h">Placement</h2>
+{{ partial "hctf2026/rank.html" . }}
+{{ partial "hctf2026/dayrank.html" . }}
+</section>
+<section class="hc-panel" id="speed" data-panel="speed"><h2 class="hc-panel-h">Speed</h2>
+{{ partial "hctf2026/lanes.html" . }}
+{{ partial "hctf2026/wins.html" . }}
+</section>
+<section class="hc-panel" id="days" data-panel="days"><h2 class="hc-panel-h">Day by day</h2>
+{{ partial "hctf2026/days.html" . }}
+</section>
+<section class="hc-panel" id="cost" data-panel="cost"><h2 class="hc-panel-h">Cost &amp; tokens</h2>
+{{ partial "hctf2026/cost-live.html" . }}
+{{ partial "hctf2026/cost-night.html" . }}
+{{ partial "hctf2026/stages.html" . }}
+{{ partial "hctf2026/tokens.html" . }}
+</section>
+<section class="hc-panel" id="engineering" data-panel="engineering"><h2 class="hc-panel-h">Engineering</h2>
+{{ partial "hctf2026/commits.html" . }}
+{{ partial "hctf2026/growth.html" . }}
+{{ partial "hctf2026/hb.html" . }}
+</section>
+<section class="hc-panel" id="hof" data-panel="hof"><h2 class="hc-panel-h">Hall of Fame</h2>
+{{ partial "hctf2026/hof-tiles.html" . }}
+{{ partial "hctf2026/hof-table.html" . }}
+</section>
+<p class="hc-foot">Snapshot 2026-10-31 · official scoreboard, Game Master list, public speed board and the harness's own logs · no live refresh</p>
