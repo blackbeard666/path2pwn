@@ -1,5 +1,6 @@
 {{ define "main" }}
-{{- /* A CTF stats dashboard: post head, then one full-width column of tabbed
+{{- /* A CTF stats dashboard, picked by front matter `layout: dashboard` on a
+       writeups page: post head, then one full-width column of tabbed
        panels. No TOC — the tab row is the navigation. The panels come from a
        GENERATED partial (partials/hctf2026/dashboard.html, written by the
        harness repo's reference/writeup/render.py); front matter `dashboard`
@@ -12,7 +13,7 @@
   <nav class="crumbs" aria-label="Breadcrumb">
     <a href="{{ "/" | relURL }}">all</a>
     <span aria-hidden="true">/</span>
-    <span>ctf</span>
+    <a href="{{ "/" | relURL }}{{ .Type }}/">{{ .Type }}</a>
     <span aria-hidden="true">/</span>
     <span class="crumb-current">{{ .Title | truncate 42 }}</span>
   </nav>

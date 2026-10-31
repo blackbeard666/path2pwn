@@ -1,4 +1,4 @@
-// Tabs for the CTF stats dashboard (layouts/ctf/single.html).
+// Tabs for the CTF stats dashboard (layouts/writeups/dashboard.html).
 //
 // Progressive enhancement: without this file every panel renders stacked and
 // the tab row is a list of in-page anchors. With it, one panel shows at a time,
