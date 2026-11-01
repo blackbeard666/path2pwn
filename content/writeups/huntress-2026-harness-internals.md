@@ -15,8 +15,13 @@ draft: false
 > **The code is public:** [blackbeard666/huntress-ctf-2026-ai-harness](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness).
 > File names link to it.
 
-This is part 2. [Part 1](/writeups/huntress-ctf-2026-ai-arena/) tells the story: the event, the results, the
-models, the decisions and the numbers. This part opens the machine. Most sections start with a flowchart and then
+**This retrospective comes in three parts:**
+
+- **[Part 1: the story](/writeups/huntress-ctf-2026-ai-arena/)**: the event, how we placed, the bet on a harness, the models, every decision and the war stories. Start here if you want to know what happened and why.
+- **[Part 2: inside the harness](/writeups/huntress-2026-harness-internals/)**: if you want to know how the harness actually works. Every moving part drawn as a flowchart and walked step by step, from the daily loop down to a single tool call, with links to the code. *(You are here.)*
+- **[The numbers](/writeups/huntress-2026-dashboard/)**: if you just want the data. Placement replayed hour by hour, daily clear times, per-lane speed, spend and tokens, as interactive charts with table views.
+
+This part opens the machine. Most sections start with a flowchart and then
 walk through it box by box, in the chart's order: what runs, what decides, the thresholds, the file that implements
 it, and usually the incident that made it that way. Every flowchart also has a table view under it that lists each
 step with a link to its code.
@@ -865,3 +870,7 @@ A map of every module is folded below.
 </div>
 
 </details>
+
+---
+
+**Keep reading:** [Part 1](/writeups/huntress-ctf-2026-ai-arena/) tells the story this machine was built for, and [the numbers](/writeups/huntress-2026-dashboard/) show what it did over the month.

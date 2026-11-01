@@ -15,6 +15,12 @@ draft: false
 >
 > **The code is public:** [blackbeard666/huntress-ctf-2026-ai-harness](https://github.com/blackbeard666/huntress-ctf-2026-ai-harness). File names below link to it.
 
+**This retrospective comes in three parts:**
+
+- **[Part 1: the story](/writeups/huntress-ctf-2026-ai-arena/)**: the event, how we placed, the bet on a harness, the models, every decision and the war stories. Start here if you want to know what happened and why. *(You are here.)*
+- **[Part 2: inside the harness](/writeups/huntress-2026-harness-internals/)**: if you want to know how the harness actually works. Every moving part drawn as a flowchart and walked step by step, from the daily loop down to a single tool call, with links to the code.
+- **[The numbers](/writeups/huntress-2026-dashboard/)**: if you just want the data. Placement replayed hour by hour, daily clear times, per-lane speed, spend and tokens, as interactive charts with table views.
+
 {{< hctf2026 "tiles" >}}
 
 ## The event
@@ -644,3 +650,7 @@ The full set, with every chart's table, is on the [stats dashboard](/writeups/hu
 The thing that mattered most wasn't any single trick. It was the loop: every failure in a live run became a
 regression case, a preflight check or a test before the next drop, and the harness was measurably faster the next
 day. The best days weren't the ones where the model was clever. They were the ones where the model barely had to run.
+
+---
+
+**Keep reading:** [Part 2: inside the harness](/writeups/huntress-2026-harness-internals/) opens the machine, every flowchart with links to the code. Or go straight to [the numbers](/writeups/huntress-2026-dashboard/).
