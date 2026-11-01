@@ -1405,6 +1405,15 @@ a.badge-cve:hover { border-color: var(--g); color: var(--g); }
 .hc-range { stroke: var(--n-700); stroke-width: 2; }
 .hc-bar { fill: var(--n-600); }
 .hc-bar.hc-ours { fill: var(--r); }
+/* FLARE-On 13 (partials/fo13/): a failed attempt is a hollow red bar (what we
+   did, and it didn't land); a window estimated from commit times is the
+   neutral bar at half strength; "flag accepted" is a short green tick, since
+   the platform is the one that accepts it. */
+.hc-bar.hc-fail { fill: var(--ground); stroke: var(--r); stroke-width: 2; }
+.hc-bar.hc-est { fill-opacity: 0.5; }
+.hc-flag { stroke-width: 2; }
+.hc-cell.hc-top { stroke: var(--n-300); stroke-width: 1; }
+.post-body .fo-results td:nth-child(2) { white-space: normal; min-width: 220px; }
 .hc-hitarea { fill: transparent; }
 .hc-hit:hover .hc-bar, .hc-hit:hover .hc-dot { opacity: 0.75; }
 .hc-cell { fill: var(--ink); }
