@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="{{ .Site.Language.Locale }}">
+{{- /* TALK RESOURCES PAGE (front matter `layout: own2pwn`).
+
+       A standalone page in the TCON9 "Own2Pwn" talk's design (navy ground, Secuna
+       blue structure, TCON green for the one thing to watch first) rather than the
+       site's own look, because it's what the QR code on the talk's closing slide
+       opens. It deliberately skips header.html/footer.html; a single back link keeps
+       it attached to the site.
+
+       head.html is reused as-is so the Content-Security-Policy stays the single
+       source of truth. Nothing here needs JavaScript, so the CSP needs no change.
+       The talk's typefaces come from Google Fonts, which the CSP already allows.
+
+       Every resource lives in content/own2pwn-resources.md front matter: adding a talk or a
+       write-up is a Markdown edit, not a template edit.
+
+       The page is a root-level single page, not a cves/writeups post, so the home
+       page, /all/, the tag pages and the search index (all filtered to
+       Type cves/writeups) never list it. */ -}}
+<head>
+  {{ partial "head.html" . }}
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ "css/own2pwn.css" | relURL }}" />
+</head>
+<body class="o2p">
+  <a class="skip" href="#main">skip to content</a>
+  <div class="o2p-wrap">
+    <nav class="o2p-back" aria-label="Site"><a href="{{ "/" | relURL }}">← {{ .Site.Title }}</a></nav>
+
+    <main id="main">
+      <header class="o2p-head">
+        {{ with .Params.event }}<div class="o2p-eyebrow">{{ . }}</div>{{ end }}
+        <h1>Own2Pwn: <span>keep going</span></h1>
+        <div class="o2p-intro">{{ .Content }}</div>
+        <div class="o2p-by"><span>Carlo Jae Avila</span><span>Secuna</span><a href="https://carlojaeavila.dev">carlojaeavila.dev</a></div>
+      </header>
+
+      <section aria-labelledby="o2p-watch">
+        <h2 id="o2p-watch">Watch</h2>
+        <div class="o2p-list">
+          {{ range .Params.watch }}
+          <a class="o2p-item{{ if .first }} first{{ end }}" href="{{ .url }}" rel="noopener">
+            <span class="t">{{ .title }}</span><span class="kind">{{ if .first }}Watch first{{ else }}Video{{ end }}</span>
+            <span class="who">{{ .who }}</span>
+            <span class="why">{{ .why }}</span>
+          </a>
+          {{ end }}
+        </div>
+      </section>
+
+      <section aria-labelledby="o2p-read">
+        <h2 id="o2p-read">Read</h2>
+        <div class="o2p-list">
+          {{ range .Params.read }}
+          <a class="o2p-item" href="{{ .url }}" rel="noopener">
+            <span class="t">{{ .title }}</span><span class="kind">Write-up</span>
+            <span class="who">{{ .who }}</span>
+            <span class="why">{{ .why }}</span>
+          </a>
+          {{ end }}
+        </div>
+      </section>
+
+      <section aria-labelledby="o2p-try">
+        <h2 id="o2p-try">Try it on your own drawer</h2>
+        <ol class="o2p-classes">
+          {{ range .Params.classes }}<li><div><b>{{ .name }}</b> <span>{{ .what }}</span></div></li>{{ end }}
+        </ol>
+        <ul class="o2p-tips">
+          {{ range .Params.tips }}<li><b>{{ .lead }}</b> {{ .text | markdownify }}</li>{{ end }}
+        </ul>
+      </section>
+
+      <p class="o2p-note">The slides and demos will be linked here once the vendors have fixed what was reported. This page stays at the same address.</p>
+    </main>
+  </div>
+</body>
+</html>

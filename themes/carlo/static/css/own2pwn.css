@@ -1,0 +1,87 @@
+/* ============================================================
+   own2pwn.css — the TCON9 "Own2Pwn" talk resources page only
+   (layouts/own2pwn.html, body.o2p).
+
+   Uses the TALK's design, not the site's: navy ground, Secuna blue for
+   structure, TCON green for the single "watch first" item. Everything is
+   scoped under body.o2p so main.css (loaded first by head.html) can't leak
+   in and nothing here can leak out. Single dark look on purpose; it ignores
+   the site's light-theme toggle (data-theme="light") because the page has
+   no toggle of its own.
+   ============================================================ */
+
+body.o2p {
+  --o2p-ground: #06112a;   /* deck navy */
+  --o2p-panel:  #0b1d3f;
+  --o2p-line:   #1d3563;
+  --o2p-text:   #e8eefc;
+  --o2p-muted:  #9fb0cf;
+  --o2p-blue:   #3db5fa;   /* Secuna blue: every structural accent */
+  --o2p-green:  #00ffb4;   /* TCON9 green: used once */
+  --o2p-display: "Montserrat", "Segoe UI", system-ui, sans-serif;
+  --o2p-body:    "Inter", "Segoe UI", system-ui, sans-serif;
+  --o2p-mono:    "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+
+  margin: 0;
+  min-height: 100vh;
+  display: block;
+  background: var(--o2p-ground);
+  color: var(--o2p-text);
+  font: 400 17px/1.6 var(--o2p-body);
+  color-scheme: dark;
+}
+html:has(body.o2p) { background: #06112a; }
+
+.o2p .skip { position: absolute; left: -9999px; }
+.o2p .skip:focus { left: 16px; top: 16px; background: var(--o2p-panel); color: var(--o2p-text); padding: 8px 12px; border-radius: 8px; z-index: 10; }
+
+.o2p-wrap {
+  max-width: 760px; margin: 0 auto; padding-block: 28px 72px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.o2p-back a { font: 500 13px/1 var(--o2p-mono); color: var(--o2p-muted); text-decoration: none; }
+.o2p-back a:hover { color: var(--o2p-blue); }
+
+.o2p-head { margin-top: 36px; }
+.o2p-eyebrow { font: 600 12px/1 var(--o2p-mono); letter-spacing: .18em; text-transform: uppercase; color: var(--o2p-blue); }
+.o2p h1 { font: 800 clamp(34px, 7vw, 52px)/1.05 var(--o2p-display); letter-spacing: -.02em; margin: 14px 0 0; color: var(--o2p-text); text-wrap: balance; }
+.o2p h1 span { color: var(--o2p-blue); }
+.o2p-intro p { color: var(--o2p-muted); margin: 18px 0 0; max-width: 62ch; }
+.o2p-intro strong { color: var(--o2p-text); font-weight: 600; }
+.o2p-by { margin-top: 18px; font: 500 14px/1.5 var(--o2p-mono); color: var(--o2p-muted); display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.o2p-by span:first-child { color: var(--o2p-text); }
+.o2p-by a { color: var(--o2p-muted); text-decoration: none; } .o2p-by a:hover { color: var(--o2p-blue); }
+
+.o2p section { margin-top: 52px; }
+.o2p h2 { font: 700 13px/1 var(--o2p-mono); letter-spacing: .18em; text-transform: uppercase; color: var(--o2p-blue); margin: 0 0 16px;
+  display: flex; align-items: center; gap: 12px; border: 0; padding: 0; }
+.o2p h2::after { content: ""; flex: 1; height: 1px; background: var(--o2p-line); }
+
+.o2p-list { display: grid; gap: 12px; }
+a.o2p-item { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; text-decoration: none; color: inherit;
+  background: var(--o2p-panel); border: 1px solid var(--o2p-line); border-radius: 14px; padding: 18px 20px; min-width: 0;
+  transition: border-color .2s, transform .2s; }
+a.o2p-item:hover { border-color: var(--o2p-blue); transform: translateY(-1px); }
+a.o2p-item:focus-visible { outline: 2px solid var(--o2p-blue); outline-offset: 3px; }
+a.o2p-item.first { border-color: rgba(0, 255, 180, .55); }
+.o2p-item .t { font: 700 19px/1.3 var(--o2p-display); text-wrap: balance; min-width: 0; color: var(--o2p-text); }
+.o2p-item .kind { font: 600 11px/1 var(--o2p-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--o2p-blue);
+  border: 1px solid rgba(61, 181, 250, .45); border-radius: 999px; padding: 6px 10px; align-self: start; white-space: nowrap; }
+.o2p-item.first .kind { color: var(--o2p-green); border-color: rgba(0, 255, 180, .5); }
+.o2p-item .who { grid-column: 1 / -1; font: 500 14px/1.4 var(--o2p-mono); color: var(--o2p-muted); }
+.o2p-item .why { grid-column: 1 / -1; color: var(--o2p-muted); margin-top: 6px; font-size: 16px; }
+
+.o2p-classes { counter-reset: c; list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.o2p-classes li { counter-increment: c; display: grid; grid-template-columns: 34px 1fr; gap: 12px; align-items: start; }
+.o2p-classes li::before { content: counter(c); width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--o2p-blue);
+  display: grid; place-items: center; font: 600 14px/1 var(--o2p-mono); color: var(--o2p-text); }
+.o2p-classes b { font-weight: 600; } .o2p-classes span { color: var(--o2p-muted); }
+.o2p-tips { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 10px; }
+.o2p-tips li { padding-left: 18px; position: relative; color: var(--o2p-muted); }
+.o2p-tips li::before { content: ""; position: absolute; left: 0; top: .7em; width: 7px; height: 7px; border-radius: 50%; background: var(--o2p-blue); }
+.o2p-tips b { color: var(--o2p-text); font-weight: 600; }
+.o2p code { font-family: var(--o2p-mono); font-size: .92em; color: var(--o2p-text); background: rgba(61, 181, 250, .1); padding: 1px 6px; border-radius: 5px; }
+.o2p-note { margin-top: 56px; padding: 18px 20px; border: 1px dashed var(--o2p-line); border-radius: 14px; color: var(--o2p-muted); font-size: 15px; }
+
+@media (prefers-reduced-motion: reduce) { a.o2p-item { transition: none; } a.o2p-item:hover { transform: none; } }
