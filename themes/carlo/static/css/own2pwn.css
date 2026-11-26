@@ -30,12 +30,40 @@ body.o2p {
   font: 400 17px/1.6 var(--o2p-body);
   color-scheme: dark;
 }
-html:has(body.o2p) { background: #06112a; }
+html:has(body.o2p) { background: #020a16; }
+
+/* The deck's aurora ground (slides/deck/css/motion.css, `.ground.aurora`):
+   two blurred, skewed blue->green curtains drifting slowly. Pure CSS, so the
+   CSP needs nothing new. Fixed to the viewport so the sky stays put while the
+   list scrolls over it; .o2p-wrap sits above it on z-index 1. */
+.o2p-sky {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 120%, #031b2c 0%, #050c23 55%, #020a16 100%);
+}
+.o2p-sky::before, .o2p-sky::after {
+  content: ""; position: absolute; left: -20%; right: -20%; height: 70%; top: -8%;
+  background: repeating-linear-gradient(90deg, rgba(0,255,180,0) 0 40px, rgba(0,255,180,.10) 40px 44px, rgba(0,255,180,0) 44px 90px),
+              linear-gradient(180deg, transparent, rgba(0,255,180,.24) 40%, rgba(61,181,250,.20) 60%, transparent);
+  -webkit-mask: radial-gradient(60% 50% at 50% 50%, #000, transparent 75%);
+          mask: radial-gradient(60% 50% at 50% 50%, #000, transparent 75%);
+  filter: blur(6px); transform: skewY(-8deg);
+  animation: o2p-curtain 18s ease-in-out infinite alternate;
+}
+.o2p-sky::after {
+  top: 12%; left: -40%; opacity: .7; filter: blur(14px) hue-rotate(-40deg);
+  animation-duration: 27s; animation-direction: alternate-reverse;
+}
+@keyframes o2p-curtain {
+  0%   { transform: skewY(-8deg)  translateX(-6%) scaleY(1); }
+  50%  { transform: skewY(-3deg)  translateX(4%)  scaleY(1.2); }
+  100% { transform: skewY(-10deg) translateX(9%)  scaleY(.85); }
+}
 
 .o2p .skip { position: absolute; left: -9999px; }
 .o2p .skip:focus { left: 16px; top: 16px; background: var(--o2p-panel); color: var(--o2p-text); padding: 8px 12px; border-radius: 8px; z-index: 10; }
 
 .o2p-wrap {
+  position: relative; z-index: 1;
   max-width: 760px; margin: 0 auto; padding-block: 28px 72px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -84,4 +112,10 @@ a.o2p-item.first { border-color: rgba(0, 255, 180, .55); }
 .o2p code { font-family: var(--o2p-mono); font-size: .92em; color: var(--o2p-text); background: rgba(61, 181, 250, .1); padding: 1px 6px; border-radius: 5px; }
 .o2p-note { margin-top: 56px; padding: 18px 20px; border: 1px dashed var(--o2p-line); border-radius: 14px; color: var(--o2p-muted); font-size: 15px; }
 
-@media (prefers-reduced-motion: reduce) { a.o2p-item { transition: none; } a.o2p-item:hover { transform: none; } }
+/* Reduced motion: the curtains stay (a still sky is fine), only the drift stops.
+   Explicit `animation: none` so tokens.css's blanket 0.01ms clamp can't freeze
+   them at an arbitrary keyframe. */
+@media (prefers-reduced-motion: reduce) {
+  a.o2p-item { transition: none; } a.o2p-item:hover { transform: none; }
+  .o2p-sky::before, .o2p-sky::after { animation: none; }
+}
