@@ -40,6 +40,32 @@ html:has(body.o2p) { background: #020a16; }
   position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
   background: radial-gradient(120% 90% at 50% 120%, #031b2c 0%, #050c23 55%, #020a16 100%);
 }
+/* The deck's drifting measurement lattice (theme.css `.slide::before`). */
+.o2p-grid {
+  position: absolute; inset: -120px; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(146,216,252,.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(146,216,252,.16) 1px, transparent 1px);
+  background-size: 120px 120px;
+  -webkit-mask-image: radial-gradient(70% 70% at 75% 25%, #000 0%, rgba(0,0,0,.35) 45%, transparent 80%);
+          mask-image: radial-gradient(70% 70% at 75% 25%, #000 0%, rgba(0,0,0,.35) 45%, transparent 80%);
+  opacity: .55; animation: o2p-lattice 90s linear infinite;
+}
+/* The deck's big blue->green glow (motion.css `.slide::after`). */
+.o2p-glow {
+  position: absolute; width: 2600px; height: 900px; left: -340px; top: -420px; pointer-events: none;
+  background:
+    radial-gradient(60% 38% at 30% 55%, rgba(61,181,250,.22), transparent 70%),
+    radial-gradient(45% 30% at 68% 45%, rgba(0,255,180,.14), transparent 70%),
+    radial-gradient(35% 22% at 88% 60%, rgba(61,181,250,.13), transparent 70%);
+  filter: blur(28px); animation: o2p-glow 22s ease-in-out infinite alternate;
+}
+@keyframes o2p-lattice { to { transform: translate3d(120px, 120px, 0); } }
+@keyframes o2p-glow {
+  0%   { transform: translate3d(0, 0, 0) rotate(-6deg) scaleY(1); opacity: .8; }
+  50%  { transform: translate3d(-180px, 70px, 0) rotate(-2deg) scaleY(1.3); opacity: 1; }
+  100% { transform: translate3d(140px, 20px, 0) rotate(-9deg) scaleY(.9); opacity: .75; }
+}
 .o2p-sky::before, .o2p-sky::after {
   content: ""; position: absolute; left: -20%; right: -20%; height: 70%; top: -8%;
   background: repeating-linear-gradient(90deg, rgba(0,255,180,0) 0 40px, rgba(0,255,180,.10) 40px 44px, rgba(0,255,180,0) 44px 90px),
@@ -117,5 +143,5 @@ a.o2p-item.first { border-color: rgba(0, 255, 180, .55); }
    them at an arbitrary keyframe. */
 @media (prefers-reduced-motion: reduce) {
   a.o2p-item { transition: none; } a.o2p-item:hover { transform: none; }
-  .o2p-sky::before, .o2p-sky::after { animation: none; }
+  .o2p-sky::before, .o2p-sky::after, .o2p-grid, .o2p-glow { animation: none; }
 }

@@ -21,11 +21,13 @@
 <head>
   {{ partial "head.html" . }}
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="{{ "css/own2pwn.css" | relURL }}" />
+  {{- /* ?v= is the file's own hash: Cloudflare caches /css/*.css for 4h, so an
+         unversioned URL kept serving the previous stylesheet after a deploy. */}}
+  <link rel="stylesheet" href="{{ "css/own2pwn.css" | relURL }}?v={{ os.ReadFile "themes/carlo/static/css/own2pwn.css" | md5 | truncate 10 "" }}" />
 </head>
 <body class="o2p">
   <a class="skip" href="#main">skip to content</a>
-  <div class="o2p-sky" aria-hidden="true"></div>
+  <div class="o2p-sky" aria-hidden="true"><div class="o2p-glow"></div><div class="o2p-grid"></div></div>
   <div class="o2p-wrap">
     <nav class="o2p-back" aria-label="Site"><a href="{{ "/" | relURL }}">← {{ .Site.Title }}</a></nav>
 
